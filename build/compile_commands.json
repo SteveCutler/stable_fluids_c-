@@ -1,8 +1,14 @@
 [
 {
   "directory": "/Users/stevecutler/Documents/UVIC/StableFluidsC++/build",
-  "command": "/usr/bin/clang++  -isystem /opt/homebrew/include -g -std=gnu++20 -arch arm64 -o CMakeFiles/StableFluidsC++.dir/src/main.cpp.o -c /Users/stevecutler/Documents/UVIC/StableFluidsC++/src/main.cpp",
+  "command": "/usr/bin/clang++  -I/Users/stevecutler/Documents/UVIC/StableFluidsC++/include -isystem /opt/homebrew/include -g -std=gnu++20 -arch arm64 -o CMakeFiles/StableFluidsC++.dir/src/main.cpp.o -c /Users/stevecutler/Documents/UVIC/StableFluidsC++/src/main.cpp",
   "file": "/Users/stevecutler/Documents/UVIC/StableFluidsC++/src/main.cpp",
   "output": "CMakeFiles/StableFluidsC++.dir/src/main.cpp.o"
+},
+{
+  "directory": "/Users/stevecutler/Documents/UVIC/StableFluidsC++/build",
+  "command": "/usr/bin/clang++  -I/Users/stevecutler/Documents/UVIC/StableFluidsC++/include -isystem /opt/homebrew/include -g -std=gnu++20 -arch arm64 -o CMakeFiles/StableFluidsC++.dir/src/grid.cpp.o -c /Users/stevecutler/Documents/UVIC/StableFluidsC++/src/grid.cpp",
+  "file": "/Users/stevecutler/Documents/UVIC/StableFluidsC++/src/grid.cpp",
+  "output": "CMakeFiles/StableFluidsC++.dir/src/grid.cpp.o"
 }
 ]

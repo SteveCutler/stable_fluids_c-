@@ -6,11 +6,18 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(SFML COMPONENTS Graphics Window System REQUIRED)
 
-add_executable(StableFluidsC++ src/main.cpp)
+add_executable(StableFluidsC++ 
+src/main.cpp
+src/grid.cpp)
 
 target_link_libraries(StableFluidsC++
     PRIVATE
     SFML::Graphics
     SFML::Window
     SFML::System
+)
+target_include_directories(
+    StableFluidsC++
+    PRIVATE
+    include
 )
