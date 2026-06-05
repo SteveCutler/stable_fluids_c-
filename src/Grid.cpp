@@ -61,6 +61,8 @@ void Grid::spawn(std::size_t width, std::size_t height){
 }
 
 void Grid::diffuse(){
+    //∂d/∂t​=D∇^2*d
+    
     //diffuse
 }
 
