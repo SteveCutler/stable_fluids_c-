@@ -12,7 +12,12 @@ class Grid
 
         void update(float dt);
 
+        std::pair<std::size_t,std::size_t> get_xy(std::size_t i);
+
+        //field getters
         const std::vector<float>& density() const;
+        const std::vector<float>& u_velocity() const;
+        const std::vector<float>& v_velocity() const;
 
     private:
 
@@ -32,7 +37,7 @@ class Grid
         
         void decay(float dt);
 
-        std::pair<std::size_t,std::size_t> get_xy(std::size_t i);
+
 
     
     private:

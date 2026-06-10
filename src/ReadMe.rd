@@ -1,3 +1,5 @@
+TODO
+
 Diffuse
     -upgrading to 9 point later
     -optimize cell sampling
@@ -6,3 +8,8 @@ Diffuse
 Advect
     -handle boundaries better
     -advect velocity?
+
+Render
+    -seperate render logic
+    - normalize arrow length
+

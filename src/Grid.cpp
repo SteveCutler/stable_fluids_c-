@@ -7,7 +7,7 @@ m_width(width),
 m_height(height),
 m_density(width*height, 0.0f),
 m_v_velocity(width*height, 10.0f),
-m_u_velocity(width*height, 0.0f),
+m_u_velocity(width*height, -20.0f),
 m_density_prev(width*height, 0.0f),
 m_v_velocity_prev(width*height, 0.0f),
 m_u_velocity_prev(width*height, 0.0f),
@@ -18,12 +18,24 @@ m_source(50.f)
   // spawn(width , height);
 }
 
+//field getters
 const std::vector<float>& Grid::density() const{
     return m_density;
 }
 
+const std::vector<float>& Grid::u_velocity() const{
+    return m_u_velocity;
+};
+
+const std::vector<float>& Grid::v_velocity() const{
+    return m_v_velocity;
+};
+
+
+
+//UPDATE LOOP
+
 void Grid::update(float dt){
-    //update loop
     addSource(m_width/2,m_height/2, m_source);
     swap();
     diffuse(dt);
