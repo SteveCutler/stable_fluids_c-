@@ -20,15 +20,17 @@ class Grid
 
         float distance(sf::Vector2f first, sf::Vector2f second);
         
-        void addSource(size_t x, size_t y, int size);
+        void addSource(size_t x, size_t y, float size);
 
         void spawn(std::size_t width, std::size_t height);
         
+        void swap();
+
         void diffuse(float dt);
         
         void advect(float dt);
-
-        void swap();
+        
+        void decay(float dt);
 
         std::pair<std::size_t,std::size_t> get_xy(std::size_t i);
 
@@ -39,6 +41,8 @@ class Grid
         int m_width;
         int m_height;
         float m_diff_co;
+        float m_decay;
+        float m_source;
 
         // SoA member variables
         std::vector<float> m_density;

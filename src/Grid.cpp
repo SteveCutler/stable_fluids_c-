@@ -6,14 +6,16 @@ Grid::Grid(std::size_t width, std::size_t height):
 m_width(width),
 m_height(height),
 m_density(width*height, 0.0f),
-m_v_velocity(width*height, 5.0f),
+m_v_velocity(width*height, 10.0f),
 m_u_velocity(width*height, 0.0f),
 m_density_prev(width*height, 0.0f),
 m_v_velocity_prev(width*height, 0.0f),
 m_u_velocity_prev(width*height, 0.0f),
-m_diff_co(5.0f)
+m_diff_co(5.0f),
+m_decay(0.99f),
+m_source(50.f)
 {
-    spawn(width , height);
+  // spawn(width , height);
 }
 
 const std::vector<float>& Grid::density() const{
@@ -22,10 +24,13 @@ const std::vector<float>& Grid::density() const{
 
 void Grid::update(float dt){
     //update loop
+    addSource(m_width/2,m_height/2, m_source);
     swap();
     diffuse(dt);
     swap();
     advect(dt);
+    swap();
+    decay(dt);
 }
     
 
@@ -54,7 +59,7 @@ float Grid::distance(sf::Vector2f first, sf::Vector2f second){
     return dist;
 }
 
-void Grid::addSource(size_t x, size_t y, int size){
+void Grid::addSource(size_t x, size_t y, float size){
 
     for(int dx = -size; dx<=size; dx++){
         for (int dy = -size; dy <=size; dy++){
@@ -75,10 +80,7 @@ void Grid::addSource(size_t x, size_t y, int size){
     }
 }
 
-void Grid::spawn(std::size_t width, std::size_t height){
-    addSource(m_width/2,m_height/2, 50);
-    //create density
-}
+
 
 void Grid::diffuse(float dt){
     //5 points diffusion kernel
@@ -169,5 +171,13 @@ void Grid::advect(float dt){
 
     }
 
+}
+
+//decay kernel
+void Grid::decay(float dt){
+    for( std::size_t i = 0; i<m_density.size(); i++){
+        //sample density multiply by decay coefficient
+        m_density[i] = m_density_prev[i]*m_decay;
+    }
 }
 
