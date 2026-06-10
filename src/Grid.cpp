@@ -6,7 +6,7 @@ Grid::Grid(std::size_t width, std::size_t height):
 m_width(width),
 m_height(height),
 m_density(width*height, 0.0f),
-m_v_velocity(width*height, 0.0f),
+m_v_velocity(width*height, 5.0f),
 m_u_velocity(width*height, 0.0f),
 m_density_prev(width*height, 0.0f),
 m_v_velocity_prev(width*height, 0.0f),
@@ -24,6 +24,8 @@ void Grid::update(float dt){
     //update loop
     swap();
     diffuse(dt);
+    swap();
+    advect(dt);
 }
     
 
@@ -90,32 +92,82 @@ void Grid::diffuse(float dt){
     float new_dens = 0.f;
 
     for (std::size_t i = 0; i<m_density.size(); i++){
+        //get xy coordinates
         xy = get_xy(i);
         std::size_t x=xy.first;
         std::size_t y=xy.second;
 
+        //checking boundary conditions
         if(x>0 && x < m_width-1 &&
            y>0 && y < m_height-1)
            {
+            //getting data for laplacian
             left = m_density_prev[calcPos(x-1,y)];
             right = m_density_prev[calcPos(x+1,y)];
             up = m_density_prev[calcPos(x,y-1)];
             down = m_density_prev[calcPos(x,y+1)];
             center = m_density_prev[i];
 
+            //calculate laplacian
             lap = left+right+up+down - (4*center);
+
+            //calculate and write new density
             new_dens = m_density_prev[i]+ m_diff_co*lap*dt;
             m_density[i] = new_dens;
+
             }
         else{
+            //leave boundary conditions the same
             m_density[i] = m_density_prev[i];
             }
     }
-    
-    //diffuse
 }
 
 void Grid::advect(float dt){
-    //advect
+
+    std::pair<std::size_t,std::size_t> xy = std::pair(0,0);
+    float new_dens = 0.f;
+
+    for(std::size_t i=0; i<m_density.size(); i++){
+        //index velocity
+        float v_vel = m_v_velocity[i];
+        float u_vel = m_u_velocity[i];
+
+        //xy values for index
+        xy = get_xy(i);
+        float x = static_cast<float>(xy.first);
+        float y = static_cast<float>(xy.second);
+
+        //backwards location lookup 
+        float new_x = x - u_vel*dt;
+        float new_y = y - v_vel*dt;
+
+        //finding 4 corners for bilinear interpolation, clamping in boundaries
+        std::size_t x_low = std::clamp(std::floor(new_x),2.f,m_width-2*1.f);
+        std::size_t x_high = std::clamp(std::ceil(new_x),2.f,m_width-2*1.f);
+        std::size_t y_low = std::clamp(std::floor(new_y),2.f,m_height-2*1.f);
+        std::size_t y_high = std::clamp(std::ceil(new_y),2.f,m_height-2*1.f);
+
+        //finding values at corners
+        float tl = m_density_prev[calcPos(x_low,y_low)];
+        float tr = m_density_prev[calcPos(x_high,y_low)];
+        float bl = m_density_prev[calcPos(x_low,y_high)];
+        float br = m_density_prev[calcPos(x_high,y_high)];
+
+        //distance from edges
+        float dx = new_x - x_low;
+        float dy = new_y - y_low;
+
+        //weighting calculations
+        float tl_weight = (1-dx)*(1-dy);
+        float tr_weight = dx*(1-dy);
+        float bl_weight = (1-dx)*dy;
+        float br_weight = dx*dy;
+
+        new_dens = tl*tl_weight + tr*tr_weight + bl*bl_weight + br*br_weight;
+        m_density[i] = new_dens;
+
+    }
+
 }
 
