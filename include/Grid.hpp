@@ -24,9 +24,13 @@ class Grid
 
         void spawn(std::size_t width, std::size_t height);
         
-        void diffuse();
+        void diffuse(float dt);
         
-        void advect();
+        void advect(float dt);
+
+        void swap();
+
+        std::pair<std::size_t,std::size_t> get_xy(std::size_t i);
 
     
     private:
@@ -34,6 +38,7 @@ class Grid
         //Global variables
         int m_width;
         int m_height;
+        float m_diff_co;
 
         // SoA member variables
         std::vector<float> m_density;
