@@ -55,7 +55,9 @@ const std::vector<float>& Grid::get_noise() const{
 //UPDATE LOOP
 
 void Grid::update(float dt){
-    calcNoise(dt);
+    calcNoise(dt*10);
+    calcVel();
+
     addSource(m_width/2,m_height/2, m_source);
     swap();
     diffuse(dt);
@@ -74,10 +76,10 @@ void Grid::calcNoise(float dt){
     m_elapsed += dt;
     std::size_t index = 0;
 
-    for(float x = 0.f; x<m_width; x++){
-         for(float y = 0.f; y<m_height; y++){
+    for(std::size_t x = 0; x<m_width; x++){
+         for(std::size_t y = 0; y<m_height; y++){
             
-            float n = m_noise_gen.GetNoise(x,y,m_elapsed);
+            float n = m_noise_gen.GetNoise(x*1.f,y*1.f,m_elapsed);
             m_noise[index] = n;
             index++;
         }
@@ -85,6 +87,33 @@ void Grid::calcNoise(float dt){
 
 
 };
+
+void Grid::calcVel(){
+    for(float x = 0.f; x<m_width; x++){
+         for(float y = 0.f; y<m_height; y++){
+
+
+            if(x>0 && x<m_width-1
+            && y>0 && y<m_height-1){
+
+                std::size_t index = x+y*m_width;
+
+                float xl = m_noise[(x-1)+y*m_width];
+                float xr = m_noise[(x+1)+y*m_width];
+                float yt = m_noise[x+(y-1)*m_width];
+                float yb = m_noise[x+(y+1)*m_width];
+
+                float dx = (xr-xl)/2;
+                float dy = (yb-yt)/2;
+
+                m_u_velocity[index] = -dy*1000;
+                m_v_velocity[index] = dx*1000;
+               
+            }
+
+        }
+    }
+}
 
 void Grid::swap(){
     std::swap(m_density, m_density_prev);

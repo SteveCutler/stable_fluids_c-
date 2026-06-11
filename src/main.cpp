@@ -84,7 +84,7 @@ int main()
 
         // DRAW BLOCK
 
-        const auto& density = Grid.get_noise();
+        const auto& density = Grid.density();
         const auto& u_velocity = Grid.u_velocity();
         const auto& v_velocity = Grid.v_velocity();
 
@@ -144,7 +144,7 @@ int main()
         window.draw(sprite);
 
         //render velocity arrows
-        //window.draw(arrows);
+       // window.draw(arrows);
 
         //render debug text
         window.draw(fpsText);

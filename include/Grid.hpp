@@ -26,8 +26,9 @@ class Grid
 
         size_t calcPos(size_t x, size_t y);
 
-        void initializeNoise();
         void calcNoise(float dt);
+
+        void calcVel();
 
         float distance(sf::Vector2f first, sf::Vector2f second);
         
