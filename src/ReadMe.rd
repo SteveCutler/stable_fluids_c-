@@ -13,3 +13,5 @@ Render
     -seperate render logic
     - normalize arrow length
 
+Noise
+    -write my own perlin noise function 

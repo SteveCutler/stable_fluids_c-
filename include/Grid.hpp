@@ -3,6 +3,8 @@
 #include <cstddef>
 #include <vector>
 #include <SFML/Graphics.hpp>
+#include "../include/FastNoiseLite.h"
+
 
 class Grid
     {
@@ -18,10 +20,14 @@ class Grid
         const std::vector<float>& density() const;
         const std::vector<float>& u_velocity() const;
         const std::vector<float>& v_velocity() const;
+        const std::vector<float>& get_noise() const;
 
     private:
 
         size_t calcPos(size_t x, size_t y);
+
+        void initializeNoise();
+        void calcNoise(float dt);
 
         float distance(sf::Vector2f first, sf::Vector2f second);
         
@@ -37,6 +43,8 @@ class Grid
         
         void decay(float dt);
 
+        FastNoiseLite m_noise_gen;
+
 
 
     
@@ -48,6 +56,7 @@ class Grid
         float m_diff_co;
         float m_decay;
         float m_source;
+        float m_elapsed;
 
         // SoA member variables
         std::vector<float> m_density;
@@ -57,5 +66,7 @@ class Grid
         std::vector<float>m_density_prev;
         std::vector<float>m_u_velocity_prev;
         std::vector<float>m_v_velocity_prev;
+
+        std::vector<float> m_noise;
 
     };

@@ -1,6 +1,9 @@
 #include "../include/Grid.hpp"
 #include <vector>
 
+#include <random>
+
+
 
 Grid::Grid(std::size_t width, std::size_t height):
 m_width(width),
@@ -13,9 +16,22 @@ m_v_velocity_prev(width*height, 0.0f),
 m_u_velocity_prev(width*height, 0.0f),
 m_diff_co(5.0f),
 m_decay(0.99f),
-m_source(50.f)
+m_source(50.f),
+m_elapsed(0.f),
+m_noise(width*height, 0.0f)
 {
-  // spawn(width , height);
+
+    //configure random num gen
+    std::random_device rd;
+    std::mt19937 gen(rd()); 
+    std::uniform_int_distribution<int> distr(1, 100);
+
+
+    //configure noise generator
+    m_noise_gen.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+    m_noise_gen.SetSeed(distr(gen));
+    m_noise_gen.SetFrequency(0.01f);
+
 }
 
 //field getters
@@ -31,11 +47,15 @@ const std::vector<float>& Grid::v_velocity() const{
     return m_v_velocity;
 };
 
+const std::vector<float>& Grid::get_noise() const{
+    return m_noise;
+};
 
 
 //UPDATE LOOP
 
 void Grid::update(float dt){
+    calcNoise(dt);
     addSource(m_width/2,m_height/2, m_source);
     swap();
     diffuse(dt);
@@ -48,6 +68,23 @@ void Grid::update(float dt){
 
 
 //HELPERS
+
+
+void Grid::calcNoise(float dt){
+    m_elapsed += dt;
+    std::size_t index = 0;
+
+    for(float x = 0.f; x<m_width; x++){
+         for(float y = 0.f; y<m_height; y++){
+            
+            float n = m_noise_gen.GetNoise(x,y,m_elapsed);
+            m_noise[index] = n;
+            index++;
+        }
+    }
+
+
+};
 
 void Grid::swap(){
     std::swap(m_density, m_density_prev);
