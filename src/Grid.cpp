@@ -5,6 +5,7 @@
 
 
 
+
 Grid::Grid(std::size_t width, std::size_t height):
 m_width(width),
 m_height(height),
@@ -22,6 +23,12 @@ m_noise(width*height, 0.0f),
 m_pressure(width*height, 0.0f),
 m_pressure_prev(width*height, 0.0f),
 m_divergence(width*height, 0.0f),
+m_noise_ms(0.f),
+m_vel_ms(0.f),
+m_div_ms(0.f),
+m_pressure_ms(0.f),
+m_advect_ms(0.f),
+m_diffuse_ms(0.f),
 m_curl_mult(1000)
 {
 
@@ -29,6 +36,8 @@ m_curl_mult(1000)
     std::random_device rd;
     std::mt19937 gen(rd()); 
     std::uniform_int_distribution<int> distr(1, 100);
+
+    
 
 
     //configure noise generator
@@ -55,29 +64,72 @@ const std::vector<float>& Grid::get_noise() const{
     return m_noise;
 };
 
+// timing getters
+
+float Grid::time_noise() const {
+    return m_noise_ms;
+};
+
+float Grid::time_vel() const{
+    return m_vel_ms;
+};
+
+float Grid::time_divergence() const{
+    return m_div_ms;
+};
+
+float Grid::time_pressure() const{
+    return m_pressure_ms;
+};
+
+float Grid::time_diffuse() const{
+    return m_diffuse_ms;
+};
+
+float Grid::time_advect() const{
+    return m_advect_ms;
+};
+
 
 //UPDATE LOOP
 
 void Grid::update(float dt){
-    //Noise Velocity
+    //Create noise scalar field
+    m_performance_clock.restart();
     calcNoise(dt*10);
+    m_noise_ms = m_performance_clock.restart().asMilliseconds();
+    
+    //Create vel gradient field based on noise
+    m_performance_clock.restart();
     calcVel();
+    m_vel_ms = m_performance_clock.restart().asMilliseconds();
 
-    //Divergence/Pressure Solve
     clearPressure();
+    
+    //Divergence/Pressure Solve
+    m_performance_clock.restart();
     calcDivergence();
+    m_div_ms = m_performance_clock.restart().asMilliseconds();
+    
+    m_performance_clock.restart();
     solvePressure();
-
+    m_pressure_ms = m_performance_clock.restart().asMilliseconds();
+    
     //Add density source
+    
     addSource(m_width/2,m_height/2, m_source);
-
+    
     //Diffuse
     swapDensity();
+    m_performance_clock.restart();
     diffuse(dt);
+    m_diffuse_ms = m_performance_clock.restart().asMilliseconds();
     
     //Advect
     swapDensity();
+    m_performance_clock.restart();
     advect(dt);
+    m_advect_ms = m_performance_clock.restart().asMilliseconds();
 
     //Decay
     swapDensity();

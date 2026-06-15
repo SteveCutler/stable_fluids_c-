@@ -49,7 +49,36 @@ int main()
     msText.setFillColor(sf::Color::White);
     msText.setPosition({5.f, 15.f});
 
+    //Update kernel debugging
+    sf::Text noise(font);
+    noise.setCharacterSize(12);
+    noise.setFillColor(sf::Color::White);
+    noise.setPosition({5.f, 30.f});
 
+    sf::Text vel(font);
+    vel.setCharacterSize(12);
+    vel.setFillColor(sf::Color::White);
+    vel.setPosition({5.f, 45.f});
+
+    sf::Text divergence(font);
+    divergence.setCharacterSize(12);
+    divergence.setFillColor(sf::Color::White);
+    divergence.setPosition({5.f, 60.f});
+
+    sf::Text pressure(font);
+    pressure.setCharacterSize(12);
+    pressure.setFillColor(sf::Color::White);
+    pressure.setPosition({5.f, 75.f});
+
+    sf::Text diffuse(font);
+    diffuse.setCharacterSize(12);
+    diffuse.setFillColor(sf::Color::White);
+    diffuse.setPosition({5.f, 90.f});
+
+    sf::Text advect(font);
+    advect.setCharacterSize(12);
+    advect.setFillColor(sf::Color::White);
+    advect.setPosition({5.f, 105.f});
 
 
     // run the main loop
@@ -72,6 +101,7 @@ int main()
         float fps = 1.f / elapsed;
         float ms = dt * 1000.f;
 
+
         // overlay strings
         fpsText.setString(
             "FPS: " + std::to_string(static_cast<int>(fps))
@@ -80,6 +110,32 @@ int main()
         msText.setString(
             "\nFrame ms: " + std::to_string(ms)
         );
+
+        noise.setString(
+            "\nNoise ms: " + std::to_string(Grid.time_noise())
+        );
+
+        vel.setString(
+            "\nVel ms: " + std::to_string(Grid.time_vel())
+        );
+
+        divergence.setString(
+            "\nDivergence ms: " + std::to_string(Grid.time_divergence())
+        );
+
+        pressure.setString(
+            "\nPressure ms: " + std::to_string(Grid.time_pressure())
+        );
+
+        diffuse.setString(
+            "\nDiffuse ms: " + std::to_string(Grid.time_diffuse())
+        );
+
+        advect.setString(
+            "\nAdvect ms: " + std::to_string(Grid.time_advect())
+        );
+
+
 
         // update
         Grid.update(dt);
@@ -152,6 +208,13 @@ int main()
         //render debug text
         window.draw(fpsText);
         window.draw(msText);
+
+        window.draw(noise);
+        window.draw(vel);
+        window.draw(divergence);
+        window.draw(pressure);
+        window.draw(diffuse);
+        window.draw(advect);
 
         // display
         window.display();

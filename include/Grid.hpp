@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <vector>
 #include <SFML/Graphics.hpp>
+#include <SFML/Window.hpp>
 #include "../include/FastNoiseLite.h"
 
 
@@ -21,6 +22,16 @@ class Grid
         const std::vector<float>& u_velocity() const;
         const std::vector<float>& v_velocity() const;
         const std::vector<float>& get_noise() const;
+
+        //timing getters
+        sf::Clock m_performance_clock;
+        float time_noise() const;
+        float time_vel() const;
+        float time_divergence() const;
+        float time_pressure() const;
+        float time_diffuse() const;
+        float time_advect() const;
+
 
     private:
 
@@ -56,6 +67,7 @@ class Grid
 
 
 
+
     
     private:
 
@@ -67,6 +79,14 @@ class Grid
         float m_source;
         float m_elapsed;
         float m_curl_mult;
+
+        //Timing Debug variables
+        float m_noise_ms;
+        float m_vel_ms;
+        float m_div_ms;
+        float m_pressure_ms;
+        float m_advect_ms;
+        float m_diffuse_ms;
 
         // SoA member variables
         std::vector<float> m_density;
