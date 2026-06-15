@@ -63,10 +63,13 @@ int main()
         }
 
         // calc elapsed time
-        float dt = clock.restart().asSeconds();
+        float elapsed = clock.restart().asSeconds();
+        
+        //fixed timestep
+        float dt = 1.f/15.f;
 
         // calculate performance values
-        float fps = 1.f / dt;
+        float fps = 1.f / elapsed;
         float ms = dt * 1000.f;
 
         // overlay strings

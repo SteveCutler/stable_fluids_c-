@@ -1,6 +1,6 @@
 #include "../include/Grid.hpp"
 #include <vector>
-
+#include<iostream>
 #include <random>
 
 
@@ -15,10 +15,14 @@ m_density_prev(width*height, 0.0f),
 m_v_velocity_prev(width*height, 0.0f),
 m_u_velocity_prev(width*height, 0.0f),
 m_diff_co(5.0f),
-m_decay(0.99f),
+m_decay(0.999f),
 m_source(50.f),
 m_elapsed(0.f),
-m_noise(width*height, 0.0f)
+m_noise(width*height, 0.0f),
+m_pressure(width*height, 0.0f),
+m_pressure_prev(width*height, 0.0f),
+m_divergence(width*height, 0.0f),
+m_curl_mult(1000)
 {
 
     //configure random num gen
@@ -55,21 +59,39 @@ const std::vector<float>& Grid::get_noise() const{
 //UPDATE LOOP
 
 void Grid::update(float dt){
+    //Noise Velocity
     calcNoise(dt*10);
     calcVel();
 
+    //Divergence/Pressure Solve
+    clearPressure();
+    calcDivergence();
+    solvePressure();
+
+    //Add density source
     addSource(m_width/2,m_height/2, m_source);
-    swap();
+
+    //Diffuse
+    swapDensity();
     diffuse(dt);
-    swap();
+    
+    //Advect
+    swapDensity();
     advect(dt);
-    swap();
+
+    //Decay
+    swapDensity();
     decay(dt);
 }
     
 
 
 //HELPERS
+
+void Grid::clearPressure(){
+    std::fill(m_pressure.begin(),m_pressure.end(),0.f);
+    std::fill(m_pressure_prev.begin(),m_pressure_prev.end(),0.f);
+};
 
 
 void Grid::calcNoise(float dt){
@@ -106,8 +128,8 @@ void Grid::calcVel(){
                 float dx = (xr-xl)/2;
                 float dy = (yb-yt)/2;
 
-                m_u_velocity[index] = -dy*1000;
-                m_v_velocity[index] = dx*1000;
+                m_u_velocity[index] = -dy*m_curl_mult;
+                m_v_velocity[index] = dx*m_curl_mult;
                
             }
 
@@ -115,7 +137,78 @@ void Grid::calcVel(){
     }
 }
 
-void Grid::swap(){
+void Grid::calcDivergence(){
+    for(std::size_t x = 0; x<m_width; x++){
+            for(std::size_t y = 0; y<m_height; y++){
+
+                if(x>0 && x<m_width-1
+                && y>0 && y<m_height-1){
+
+                    std::size_t index = x+y*m_width;
+
+                    float xl = m_u_velocity[(x-1)+y*m_width];
+                    float xr = m_u_velocity[(x+1)+y*m_width];
+                    float yt = m_v_velocity[x+(y-1)*m_width];
+                    float yb = m_v_velocity[x+(y+1)*m_width];
+
+                    float div =  ((xr-xl)/2)+((yb-yt)/2);
+
+                    m_divergence.at(index) = div;
+                
+                }
+            }
+        }
+};
+
+void Grid::solvePressure(){
+
+    std::size_t k = 0;
+    while(k<20){
+        float pressure_max = 0.f;
+        float pressure_min = 0.f;
+        for(std::size_t x = 0; x<m_width; x++){
+                for(std::size_t y = 0; y<m_height; y++){
+
+                    if(x>0 && x<m_width-1
+                    && y>0 && y<m_height-1){
+
+                        std::size_t index = x+y*m_width;
+
+                        float xl = m_pressure_prev[(x-1)+y*m_width];
+                        float xr = m_pressure_prev[(x+1)+y*m_width];
+                        float yt = m_pressure_prev[x+(y-1)*m_width];
+                        float yb = m_pressure_prev[x+(y+1)*m_width];
+
+                        float pressure =  (xl+xr+yt+yb - m_divergence.at(index))/4.0f;
+                        
+                        if(pressure>pressure_max){
+                            pressure_max=pressure;
+                        }
+                        if(pressure<pressure_min){
+                            pressure_min=pressure;
+                        }
+
+
+
+
+                        m_pressure.at(index) = pressure;
+                    
+                    }
+                }
+            }
+            std::swap(m_pressure, m_pressure_prev);
+            k++;
+            std::cout << "max pressure =" << pressure_max << "\n" << "min pressure =" << pressure_min << "\n\n";
+        }
+        std::swap(m_pressure, m_pressure_prev);
+
+};
+
+void Grid::project(){
+
+};
+
+void Grid::swapDensity(){
     std::swap(m_density, m_density_prev);
 }
 
@@ -258,4 +351,5 @@ void Grid::decay(float dt){
         m_density[i] = m_density_prev[i]*m_decay;
     }
 }
+
 

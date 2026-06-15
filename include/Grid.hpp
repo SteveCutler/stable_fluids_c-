@@ -24,19 +24,27 @@ class Grid
 
     private:
 
+        void clearPressure();
+        
         size_t calcPos(size_t x, size_t y);
 
         void calcNoise(float dt);
 
         void calcVel();
 
+        void calcDivergence();
+
+        void solvePressure();
+
+        void project();
+        
         float distance(sf::Vector2f first, sf::Vector2f second);
         
         void addSource(size_t x, size_t y, float size);
 
         void spawn(std::size_t width, std::size_t height);
         
-        void swap();
+        void swapDensity();
 
         void diffuse(float dt);
         
@@ -58,6 +66,7 @@ class Grid
         float m_decay;
         float m_source;
         float m_elapsed;
+        float m_curl_mult;
 
         // SoA member variables
         std::vector<float> m_density;
@@ -69,5 +78,10 @@ class Grid
         std::vector<float>m_v_velocity_prev;
 
         std::vector<float> m_noise;
+
+        std::vector<float> m_pressure;
+        std::vector<float> m_pressure_prev;
+
+        std::vector<float> m_divergence;
 
     };
