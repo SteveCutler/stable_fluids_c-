@@ -10,13 +10,12 @@ Grid::Grid(std::size_t width, std::size_t height):
 m_width(width),
 m_height(height),
 m_density(width*height, 0.0f),
-m_v_velocity(width*height, 10.0f),
-m_u_velocity(width*height, -20.0f),
+m_v_velocity(width*height, 0.0f),
+m_u_velocity(width*height, 0.0f),
 m_density_prev(width*height, 0.0f),
 m_v_velocity_prev(width*height, 0.0f),
 m_u_velocity_prev(width*height, 0.0f),
 m_diff_co(5.0f),
-m_decay(0.999f),
 m_source(50.f),
 m_elapsed(0.f),
 m_noise(width*height, 0.0f),
@@ -29,6 +28,9 @@ m_div_ms(0.f),
 m_pressure_ms(0.f),
 m_advect_ms(0.f),
 m_diffuse_ms(0.f),
+m_decay(0.99f),
+m_vel_decay(0.95f),
+m_viscosity(2.f),
 m_curl_mult(1000)
 {
 
@@ -40,7 +42,7 @@ m_curl_mult(1000)
     //configure noise generator
     m_noise_gen.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
     m_noise_gen.SetSeed(distr(gen));
-    m_noise_gen.SetFrequency(0.01f);
+    m_noise_gen.SetFrequency(0.05f);
 
 }
 
@@ -93,35 +95,39 @@ float Grid::time_advect() const{
 void Grid::update(float dt){
     //Create noise scalar field
     m_performance_clock.restart();
-    calcNoise(dt*10);
+    calcNoise(dt*20);
     m_noise_ms = m_performance_clock.restart().asMilliseconds();
+    
     
     //Create vel gradient field based on noise
     m_performance_clock.restart();
-    calcVel();
+    calcVel(dt);
     m_vel_ms = m_performance_clock.restart().asMilliseconds();
-
+    
+    // apply velocity boundary calculations
     velBoundaries();
 
-    clearPressure();
+    //first pressure solve
+    projectStep();
+
+    //Advect velocity
+    swapVel();
+    advectVel(dt);
+
+    //apply velocity boundary conditions
+    velBoundaries();
     
-    //Divergence/Pressure Solve
-    m_performance_clock.restart();
-    calcDivergence();
-    m_div_ms = m_performance_clock.restart().asMilliseconds();
     
-    
-    m_performance_clock.restart();
-    solvePressure();
-    m_pressure_ms = m_performance_clock.restart().asMilliseconds();
-    
-    //m_performance_clock.restart();
-    project();
-    //m_pressure_ms = m_performance_clock.restart().asMilliseconds();
-    calcDivergence();
-    
+    //Diffuse velocity
+    swapVel();
+    diffuseVel(dt);  
+    velBoundaries();
+
+    //second pressure solve
+    projectStep();
+    decayVel();  
+
     //Add density source
-    
     addSource(m_width/2,m_height/2, m_source);
     
     //Diffuse
@@ -145,6 +151,24 @@ void Grid::update(float dt){
 
 //HELPERS
 
+void Grid::projectStep(){
+    clearPressure();
+    m_performance_clock.restart();
+    calcDivergence();
+    m_div_ms = m_performance_clock.restart().asMilliseconds();
+    
+    
+    m_performance_clock.restart();
+    solvePressure();
+    m_pressure_ms = m_performance_clock.restart().asMilliseconds();
+    pressureBoundaries();
+    
+    //m_performance_clock.restart();
+    project();
+    velBoundaries();
+
+}
+
 void Grid::clearPressure(){
     std::fill(m_pressure.begin(),m_pressure.end(),0.f);
     std::fill(m_pressure_prev.begin(),m_pressure_prev.end(),0.f);
@@ -163,14 +187,11 @@ void Grid::calcNoise(float dt){
             index++;
         }
     }
-
-
 };
 
-void Grid::calcVel(){
-    for(float x = 0.f; x<m_width; x++){
-         for(float y = 0.f; y<m_height; y++){
-
+void Grid::calcVel(float dt){
+    for(std::size_t x = 0; x<m_width; x++){
+         for(std::size_t y = 0; y<m_height; y++){
 
             if(x>0 && x<m_width-1
             && y>0 && y<m_height-1){
@@ -185,17 +206,143 @@ void Grid::calcVel(){
                 float dx = (xr-xl)/2;
                 float dy = (yb-yt)/2;
 
-                m_u_velocity[index] = -dy*m_curl_mult;
-                m_v_velocity[index] = dx*m_curl_mult;
+                m_u_velocity[index] += -dy*m_curl_mult*dt;
+                m_v_velocity[index] += dx*m_curl_mult*dt;
                
-
-               // std::cout<< "U Vel: " << m_u_velocity[index] << "\n";
-               // std::cout<< "V Vel: " << m_v_velocity[index] << "\n"; 
             }
 
         }
     }
 }
+
+//DYNAMIC VEL FUNCTIONS
+
+void Grid::advectVel(float dt){
+    float new_u_vel = 0.f;
+    float new_v_vel = 0.f;
+
+    for(std::size_t i=0; i<m_density.size(); i++){
+        //index velocity
+        float old_u_vel = m_u_velocity_prev[i];
+        float old_v_vel = m_v_velocity_prev[i];
+
+        //xy values for index
+        std::size_t x = i%(m_width);
+        std::size_t y = std::floor(i/(m_width));
+
+        //backwards location lookup 
+        float new_u_pos = x - old_u_vel*dt;
+        float new_v_pos = y - old_v_vel*dt;
+
+        //finding 4 corners for bilinear interpolation, clamping in boundaries
+        float x_sample = std::clamp(new_u_pos,1.0f,m_width-2.0f);
+        float y_sample = std::clamp(new_v_pos,1.0f,m_height-2.0f);
+
+        std::size_t x_floor = std::floor(x_sample);
+        std::size_t x_high = x_floor+1;
+        std::size_t y_floor = std::floor(y_sample);
+        std::size_t y_high = y_floor+1;
+
+        //finding values at corners
+        float tl_u = m_u_velocity_prev[calcPos(x_floor,y_floor)];
+        float tr_u = m_u_velocity_prev[calcPos(x_high,y_floor)];
+        float bl_u = m_u_velocity_prev[calcPos(x_floor,y_high)];
+        float br_u = m_u_velocity_prev[calcPos(x_high,y_high)];
+        
+        float tl_v = m_v_velocity_prev[calcPos(x_floor,y_floor)];
+        float tr_v = m_v_velocity_prev[calcPos(x_high,y_floor)];
+        float bl_v = m_v_velocity_prev[calcPos(x_floor,y_high)];
+        float br_v = m_v_velocity_prev[calcPos(x_high,y_high)];
+
+        //distance from edges
+        float dx = x_sample - x_floor;
+        float dy = y_sample - y_floor;
+
+        //weighting calculations
+        float tl_weight = (1-dx)*(1-dy);
+        float tr_weight = dx*(1-dy);
+        float bl_weight = (1-dx)*dy;
+        float br_weight = dx*dy;
+
+        new_u_vel = tl_u*tl_weight + tr_u*tr_weight + bl_u*bl_weight + br_u*br_weight;
+        new_v_vel = tl_v*tl_weight + tr_v*tr_weight + bl_v*bl_weight + br_v*br_weight;
+        
+        m_u_velocity[i] = new_u_vel;
+        m_v_velocity[i] = new_v_vel;
+
+    }
+};
+
+void Grid::diffuseVel(float dt){
+
+    float left_u = 0.f;
+    float right_u = 0.f;
+    float up_u = 0.f;
+    float down_u = 0.f;
+    float center_u = 0.f;
+
+    float left_v = 0.f;
+    float right_v = 0.f;
+    float up_v = 0.f;
+    float down_v = 0.f;
+    float center_v = 0.f;
+
+    float lap_u = 0.f;
+    float lap_v = 0.f;
+
+    float new_u_vel = 0.f;
+    float new_v_vel = 0.f;
+
+    for (std::size_t i = 0; i<m_density.size(); i++){
+        //get xy coordinates
+        std::size_t x = i%(m_width);
+        std::size_t y = std::floor(i/(m_width));
+
+        //checking boundary conditions
+        if(x>0 && x < m_width-1 &&
+           y>0 && y < m_height-1)
+           {
+            //getting data for laplacian
+            left_u = m_u_velocity_prev[calcPos(x-1,y)];
+            right_u = m_u_velocity_prev[calcPos(x+1,y)];
+            up_u = m_u_velocity_prev[calcPos(x,y-1)];
+            down_u = m_u_velocity_prev[calcPos(x,y+1)];
+            center_u = m_u_velocity_prev[i];
+
+            left_v = m_v_velocity_prev[calcPos(x-1,y)];
+            right_v = m_v_velocity_prev[calcPos(x+1,y)];
+            up_v = m_v_velocity_prev[calcPos(x,y-1)];
+            down_v = m_v_velocity_prev[calcPos(x,y+1)];
+            center_v = m_v_velocity_prev[i];
+
+            //calculate laplacian
+            lap_u = left_u+right_u+up_u+down_u - (4*center_u);
+            lap_v = left_v+right_v+up_v+down_v - (4*center_v);
+
+            //calculate and write new density
+            new_u_vel = m_u_velocity_prev[i]+ m_viscosity*lap_u*dt;
+            new_v_vel = m_v_velocity_prev[i]+ m_viscosity*lap_u*dt;
+
+            }
+        else{
+            //leave boundary conditions the same
+            new_u_vel = m_u_velocity_prev[i];
+            new_v_vel = m_v_velocity_prev[i];
+            }
+    }
+};
+
+void Grid::decayVel(){
+    for(std::size_t i=0; i<m_density.size(); i++){
+        m_u_velocity[i]*=m_vel_decay;
+        m_v_velocity[i]*=m_vel_decay;
+    }
+};
+
+void Grid::swapVel(){
+    std::swap(m_u_velocity, m_u_velocity_prev);
+    std::swap(m_v_velocity, m_v_velocity_prev);
+};
 
 void Grid::velBoundaries(){
     //set vel on left and right boundaries
@@ -299,7 +446,7 @@ void Grid::solvePressure(){
                         float yt = m_pressure_prev[x+(y-1)*m_width];
                         float yb = m_pressure_prev[x+(y+1)*m_width];
 
-                        float pressure =  (xl+xr+yt+yb + m_divergence.at(index))/4.0f;
+                        float pressure =  (xl+xr+yt+yb - m_divergence.at(index))/4.0f;
 
                         m_pressure.at(index) = pressure;
                     

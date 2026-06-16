@@ -34,14 +34,21 @@ class Grid
 
 
     private:
+        size_t calcPos(size_t x, size_t y);
+
+        void advectVel(float dt);
+
+        void diffuseVel(float dt);
+
+        void decayVel();
+
+        void swapVel();
 
         void clearPressure();
         
-        size_t calcPos(size_t x, size_t y);
-
         void calcNoise(float dt);
 
-        void calcVel();
+        void calcVel(float dt);
 
         void calcDivergence();
 
@@ -52,6 +59,8 @@ class Grid
         void pressureBoundaries();
 
         void project();
+
+        void projectStep();
         
         float distance(sf::Vector2f first, sf::Vector2f second);
         
@@ -80,9 +89,11 @@ class Grid
         int m_height;
         float m_diff_co;
         float m_decay;
+        float m_vel_decay;
         float m_source;
         float m_elapsed;
         float m_curl_mult;
+        float m_viscosity;
 
         //Timing Debug variables
         float m_noise_ms;
