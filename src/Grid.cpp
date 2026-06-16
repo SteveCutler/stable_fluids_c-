@@ -37,9 +37,6 @@ m_curl_mult(1000)
     std::mt19937 gen(rd()); 
     std::uniform_int_distribution<int> distr(1, 100);
 
-    
-
-
     //configure noise generator
     m_noise_gen.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
     m_noise_gen.SetSeed(distr(gen));
@@ -103,6 +100,8 @@ void Grid::update(float dt){
     m_performance_clock.restart();
     calcVel();
     m_vel_ms = m_performance_clock.restart().asMilliseconds();
+
+    velBoundaries();
 
     clearPressure();
     
@@ -189,9 +188,64 @@ void Grid::calcVel(){
                 m_u_velocity[index] = -dy*m_curl_mult;
                 m_v_velocity[index] = dx*m_curl_mult;
                
+
+               // std::cout<< "U Vel: " << m_u_velocity[index] << "\n";
+               // std::cout<< "V Vel: " << m_v_velocity[index] << "\n"; 
             }
 
         }
+    }
+}
+
+void Grid::velBoundaries(){
+    //set vel on left and right boundaries
+    for(std::size_t y = 0; y<m_height; y++){
+        std::size_t b_l = y*m_width;
+        std::size_t b_r = (m_width-1)+y*m_width;
+
+        //horizontal vel 0
+        m_u_velocity[b_l] = 0.f;
+        m_u_velocity[b_r] = 0.f;
+        //vertical vel refers to neighbour
+        m_v_velocity[b_l] = m_v_velocity[b_l+1];
+        m_v_velocity[b_r] = m_v_velocity[b_r-1];
+    }
+
+    //set vel for top and bottom boundaries
+    for(std::size_t x = 0; x<m_width; x++){
+        std::size_t b_t = x;
+        std::size_t b_b = x+(m_height-1)*m_width;
+
+        //vertical vel refers to neighbour
+        m_u_velocity[b_t] = m_u_velocity[b_t+m_width];
+        m_u_velocity[b_b] = m_u_velocity[b_b-m_width];
+        //vertical vel 0
+        m_v_velocity[b_t] =0.f;
+        m_v_velocity[b_b] = 0.f;
+    }
+}
+
+void Grid::pressureBoundaries(){
+    //set pressure on left and right boundaries
+    for(std::size_t y = 0; y<m_height; y++){
+        std::size_t b_l = y*m_width;
+        std::size_t b_r = (m_width-1)+y*m_width;
+
+
+        //pressure refers to neighbour
+        m_pressure[b_l] = m_pressure[b_l+1];
+        m_pressure[b_r] = m_pressure[b_r-1];
+    }
+
+    //set pressure for top and bottom boundaries
+    for(std::size_t x = 0; x<m_width; x++){
+        std::size_t b_t = x;
+        std::size_t b_b = x+(m_height-1)*m_width;
+
+        //refers to vertical neighbour
+        m_pressure[b_t] = m_pressure[b_t+m_width];
+        m_pressure[b_b] = m_pressure[b_b-m_width];
+
     }
 }
 
@@ -214,6 +268,9 @@ void Grid::calcDivergence(){
 
                     float div =  ((xr-xl)/2)+((yb-yt)/2);
 
+                    // if(x>2 && x<m_width-2
+                    // && y>2 && y<m_height-2){
+                    // }
                     max_div = std::max(max_div, abs(div));
 
                     m_divergence.at(index) = div;
@@ -228,8 +285,7 @@ void Grid::solvePressure(){
 
     std::size_t k = 0;
     while(k<20){
-        float pressure_max = 0.f;
-        float pressure_min = 0.f;
+
         for(std::size_t x = 0; x<m_width; x++){
                 for(std::size_t y = 0; y<m_height; y++){
 
@@ -244,24 +300,19 @@ void Grid::solvePressure(){
                         float yb = m_pressure_prev[x+(y+1)*m_width];
 
                         float pressure =  (xl+xr+yt+yb + m_divergence.at(index))/4.0f;
-                        
-                        if(pressure>pressure_max){
-                            pressure_max=pressure;
-                        }
-                        if(pressure<pressure_min){
-                            pressure_min=pressure;
-                        }
 
                         m_pressure.at(index) = pressure;
                     
                     }
                 }
             }
+            pressureBoundaries();
             std::swap(m_pressure, m_pressure_prev);
             k++;
             //std::cout << "max pressure =" << pressure_max << "\n" << "min pressure =" << pressure_min << "\n\n";
         }
         std::swap(m_pressure, m_pressure_prev);
+        pressureBoundaries();
 
 };
 

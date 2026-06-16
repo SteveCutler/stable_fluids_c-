@@ -47,6 +47,10 @@ class Grid
 
         void solvePressure();
 
+        void velBoundaries();
+
+        void pressureBoundaries();
+
         void project();
         
         float distance(sf::Vector2f first, sf::Vector2f second);

@@ -99,7 +99,7 @@ int main()
 
         // calculate performance values
         float fps = 1.f / elapsed;
-        float ms = dt * 1000.f;
+        float ms = elapsed;
 
 
         // overlay strings
