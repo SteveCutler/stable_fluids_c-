@@ -111,9 +111,15 @@ void Grid::update(float dt){
     calcDivergence();
     m_div_ms = m_performance_clock.restart().asMilliseconds();
     
+    
     m_performance_clock.restart();
     solvePressure();
     m_pressure_ms = m_performance_clock.restart().asMilliseconds();
+    
+    //m_performance_clock.restart();
+    project();
+    //m_pressure_ms = m_performance_clock.restart().asMilliseconds();
+    calcDivergence();
     
     //Add density source
     
@@ -190,6 +196,9 @@ void Grid::calcVel(){
 }
 
 void Grid::calcDivergence(){
+
+    float max_div = 0.f;
+    
     for(std::size_t x = 0; x<m_width; x++){
             for(std::size_t y = 0; y<m_height; y++){
 
@@ -205,11 +214,14 @@ void Grid::calcDivergence(){
 
                     float div =  ((xr-xl)/2)+((yb-yt)/2);
 
+                    max_div = std::max(max_div, abs(div));
+
                     m_divergence.at(index) = div;
                 
                 }
             }
         }
+        std::cout << "max divergence: " << max_div << "\n";
 };
 
 void Grid::solvePressure(){
@@ -231,7 +243,7 @@ void Grid::solvePressure(){
                         float yt = m_pressure_prev[x+(y-1)*m_width];
                         float yb = m_pressure_prev[x+(y+1)*m_width];
 
-                        float pressure =  (xl+xr+yt+yb - m_divergence.at(index))/4.0f;
+                        float pressure =  (xl+xr+yt+yb + m_divergence.at(index))/4.0f;
                         
                         if(pressure>pressure_max){
                             pressure_max=pressure;
@@ -240,9 +252,6 @@ void Grid::solvePressure(){
                             pressure_min=pressure;
                         }
 
-
-
-
                         m_pressure.at(index) = pressure;
                     
                     }
@@ -250,13 +259,36 @@ void Grid::solvePressure(){
             }
             std::swap(m_pressure, m_pressure_prev);
             k++;
-            std::cout << "max pressure =" << pressure_max << "\n" << "min pressure =" << pressure_min << "\n\n";
+            //std::cout << "max pressure =" << pressure_max << "\n" << "min pressure =" << pressure_min << "\n\n";
         }
         std::swap(m_pressure, m_pressure_prev);
 
 };
 
 void Grid::project(){
+
+        for(std::size_t x = 0; x<m_width; x++){
+            for(std::size_t y = 0; y<m_height; y++){
+
+                if(x>0 && x<m_width-1
+                && y>0 && y<m_height-1){
+
+                    std::size_t index = x+y*m_width;
+
+                    float xl = m_pressure[(x-1)+y*m_width];
+                    float xr = m_pressure[(x+1)+y*m_width];
+                    float yt = m_pressure[x+(y-1)*m_width];
+                    float yb = m_pressure[x+(y+1)*m_width];
+
+                    float pres_x =  (xr-xl)/2.f;
+                    float pres_y =  (yb-yt)/2.f;
+
+                    m_u_velocity[index] -= pres_x;
+                    m_v_velocity[index] -= pres_y;
+                
+                }
+            }
+        }
 
 };
 

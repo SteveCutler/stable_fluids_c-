@@ -49,7 +49,7 @@ int main()
     msText.setFillColor(sf::Color::White);
     msText.setPosition({5.f, 15.f});
 
-    //Update kernel debugging
+    //Kernel debugging text
     sf::Text noise(font);
     noise.setCharacterSize(12);
     noise.setFillColor(sf::Color::White);
@@ -195,7 +195,6 @@ int main()
         // Load pixel RGBA data into texture
         texture.update(pixels.data());
         
-
         // clear window
         window.clear();
         
@@ -209,6 +208,7 @@ int main()
         window.draw(fpsText);
         window.draw(msText);
 
+        //kernel profiling text
         window.draw(noise);
         window.draw(vel);
         window.draw(divergence);
