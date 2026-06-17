@@ -15,7 +15,6 @@ m_u_velocity(width*height, 0.0f),
 m_density_prev(width*height, 0.0f),
 m_v_velocity_prev(width*height, 0.0f),
 m_u_velocity_prev(width*height, 0.0f),
-m_diff_co(5.0f),
 m_source(50.f),
 m_elapsed(0.f),
 m_noise(width*height, 0.0f),
@@ -28,9 +27,10 @@ m_div_ms(0.f),
 m_pressure_ms(0.f),
 m_advect_ms(0.f),
 m_diffuse_ms(0.f),
-m_decay(0.99f),
-m_vel_decay(0.95f),
-m_viscosity(2.f),
+m_diff_co(1.f),
+m_decay(0.999f),
+m_vel_decay(0.98f),
+m_viscosity(1.f),
 m_curl_mult(1000)
 {
 
@@ -42,7 +42,7 @@ m_curl_mult(1000)
     //configure noise generator
     m_noise_gen.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
     m_noise_gen.SetSeed(distr(gen));
-    m_noise_gen.SetFrequency(0.05f);
+    m_noise_gen.SetFrequency(0.04f);
 
 }
 
@@ -108,7 +108,7 @@ void Grid::update(float dt){
     velBoundaries();
 
     //first pressure solve
-    projectStep();
+   // projectStep();
 
     //Advect velocity
     swapVel();
@@ -124,7 +124,7 @@ void Grid::update(float dt){
     velBoundaries();
 
     //second pressure solve
-    projectStep();
+    //projectStep();
     decayVel();  
 
     //Add density source
@@ -141,6 +141,7 @@ void Grid::update(float dt){
     m_performance_clock.restart();
     advect(dt);
     m_advect_ms = m_performance_clock.restart().asMilliseconds();
+    
 
     //Decay
     swapDensity();
@@ -537,7 +538,7 @@ void Grid::addSource(size_t x, size_t y, float size){
 
 void Grid::diffuse(float dt){
     //5 points diffusion kernel
-    std::pair<std::size_t,std::size_t> xy = std::pair(0,0);
+    //std::pair<std::size_t,std::size_t> xy = std::pair(0,0);
     float left = 0.f;
     float right = 0.f;
     float up = 0.f;
@@ -548,9 +549,9 @@ void Grid::diffuse(float dt){
 
     for (std::size_t i = 0; i<m_density.size(); i++){
         //get xy coordinates
-        xy = get_xy(i);
-        std::size_t x=xy.first;
-        std::size_t y=xy.second;
+       // xy = get_xy(i);
+        std::size_t x=i%m_width;
+        std::size_t y=i/m_width;
 
         //checking boundary conditions
         if(x>0 && x < m_width-1 &&
