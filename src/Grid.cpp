@@ -29,7 +29,7 @@ m_advect_ms(0.f),
 m_diffuse_ms(0.f),
 m_diff_co(1.f),
 m_decay(0.999f),
-m_vel_decay(0.98f),
+m_vel_decay(0.96f),
 m_viscosity(1.f),
 m_curl_mult(1000)
 {
@@ -95,7 +95,7 @@ float Grid::time_advect() const{
 void Grid::update(float dt){
     //Create noise scalar field
     m_performance_clock.restart();
-    calcNoise(dt*20);
+    calcNoise(dt*50);
     m_noise_ms = m_performance_clock.restart().asMilliseconds();
     
     
@@ -120,7 +120,7 @@ void Grid::update(float dt){
     
     //Diffuse velocity
     swapVel();
-    diffuseVel(dt);  
+    diffuseVel(dt*30);  
     velBoundaries();
 
     //second pressure solve
@@ -180,8 +180,8 @@ void Grid::calcNoise(float dt){
     m_elapsed += dt;
     std::size_t index = 0;
 
-    for(std::size_t x = 0; x<m_width; x++){
-         for(std::size_t y = 0; y<m_height; y++){
+    for(std::size_t y = 0; y<m_height; y++){
+         for(std::size_t x = 0; x<m_width; x++){
             
             float n = m_noise_gen.GetNoise(x*1.f,y*1.f,m_elapsed);
             m_noise[index] = n;
@@ -191,8 +191,8 @@ void Grid::calcNoise(float dt){
 };
 
 void Grid::calcVel(float dt){
-    for(std::size_t x = 0; x<m_width; x++){
-         for(std::size_t y = 0; y<m_height; y++){
+    for(std::size_t y = 0; y<m_height; y++){
+         for(std::size_t x = 0; x<m_width; x++){
 
             if(x>0 && x<m_width-1
             && y>0 && y<m_height-1){
@@ -401,8 +401,8 @@ void Grid::calcDivergence(){
 
     float max_div = 0.f;
     
-    for(std::size_t x = 0; x<m_width; x++){
-            for(std::size_t y = 0; y<m_height; y++){
+    for(std::size_t y = 0; y<m_height; y++){
+            for(std::size_t x = 0; x<m_width; x++){
 
                 if(x>0 && x<m_width-1
                 && y>0 && y<m_height-1){
@@ -434,8 +434,8 @@ void Grid::solvePressure(){
     std::size_t k = 0;
     while(k<20){
 
-        for(std::size_t x = 0; x<m_width; x++){
-                for(std::size_t y = 0; y<m_height; y++){
+        for(std::size_t y = 0; y<m_height; y++){
+                for(std::size_t x = 0; x<m_width; x++){
 
                     if(x>0 && x<m_width-1
                     && y>0 && y<m_height-1){
@@ -466,8 +466,8 @@ void Grid::solvePressure(){
 
 void Grid::project(){
 
-        for(std::size_t x = 0; x<m_width; x++){
-            for(std::size_t y = 0; y<m_height; y++){
+        for(std::size_t y = 0; y<m_height; y++){
+            for(std::size_t x = 0; x<m_width; x++){
 
                 if(x>0 && x<m_width-1
                 && y>0 && y<m_height-1){
@@ -537,6 +537,7 @@ void Grid::addSource(size_t x, size_t y, float size){
 
 
 void Grid::diffuse(float dt){
+
     //5 points diffusion kernel
     //std::pair<std::size_t,std::size_t> xy = std::pair(0,0);
     float left = 0.f;

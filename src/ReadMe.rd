@@ -15,3 +15,5 @@ Render
 
 Noise
     -write my own perlin noise function 
+
+    multiply velocity by density? clamp to 1
