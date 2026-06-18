@@ -95,7 +95,7 @@ float Grid::time_advect() const{
 void Grid::update(float dt){
     //Create noise scalar field
     m_performance_clock.restart();
-    calcNoise(dt*50);
+    calcNoise(dt*20);
     m_noise_ms = m_performance_clock.restart().asMilliseconds();
     
     
@@ -115,12 +115,12 @@ void Grid::update(float dt){
     advectVel(dt);
 
     //apply velocity boundary conditions
-    velBoundaries();
+    //velBoundaries();
     
     
     //Diffuse velocity
     swapVel();
-    diffuseVel(dt*30);  
+    diffuseVel(dt*.1);  
     velBoundaries();
 
     //second pressure solve
@@ -311,10 +311,10 @@ void Grid::diffuseVel(float dt){
 
             //calc corner indices
 
-            std::size_t l_index = x-1+y*m_width;
-            std::size_t r_index = x+1+y*m_width;
-            std::size_t u_index = x+y-1*m_width;
-            std::size_t d_index = x+y+1*m_width;
+            std::size_t l_index = i-1;
+            std::size_t r_index = i+1;
+            std::size_t u_index = i-m_width;
+            std::size_t d_index = i+m_width;
 
             //getting data for laplacian
             left_u = m_u_velocity_prev[l_index];
@@ -335,13 +335,16 @@ void Grid::diffuseVel(float dt){
 
             //calculate and write new density
             new_u_vel = m_u_velocity_prev[i]+ m_viscosity*lap_u*dt;
-            new_v_vel = m_v_velocity_prev[i]+ m_viscosity*lap_u*dt;
+            new_v_vel = m_v_velocity_prev[i]+ m_viscosity*lap_v*dt;
+
+            m_u_velocity[i] = new_u_vel;
+            m_v_velocity[i] = new_v_vel;
 
             }
         else{
             //leave boundary conditions the same
-            new_u_vel = m_u_velocity_prev[i];
-            new_v_vel = m_v_velocity_prev[i];
+            m_u_velocity[i] = m_u_velocity_prev[i];
+            m_v_velocity[i] = m_v_velocity_prev[i];
             }
     }
 };
