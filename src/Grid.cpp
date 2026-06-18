@@ -245,15 +245,20 @@ void Grid::advectVel(float dt){
         std::size_t y_high = y_floor+1;
 
         //finding values at corners
-        float tl_u = m_u_velocity_prev[calcPos(x_floor,y_floor)];
-        float tr_u = m_u_velocity_prev[calcPos(x_high,y_floor)];
-        float bl_u = m_u_velocity_prev[calcPos(x_floor,y_high)];
-        float br_u = m_u_velocity_prev[calcPos(x_high,y_high)];
+        std::size_t tl_index = x_floor+y_floor*m_width;
+        std::size_t tr_index = x_high+y_floor*m_width;
+        std::size_t bl_index = x_floor+y_high*m_width;
+        std::size_t br_index = x_high+y_high*m_width;
+
+        float tl_u = m_u_velocity_prev[tl_index];
+        float tr_u = m_u_velocity_prev[tr_index];
+        float bl_u = m_u_velocity_prev[bl_index];
+        float br_u = m_u_velocity_prev[br_index];
         
-        float tl_v = m_v_velocity_prev[calcPos(x_floor,y_floor)];
-        float tr_v = m_v_velocity_prev[calcPos(x_high,y_floor)];
-        float bl_v = m_v_velocity_prev[calcPos(x_floor,y_high)];
-        float br_v = m_v_velocity_prev[calcPos(x_high,y_high)];
+        float tl_v = m_v_velocity_prev[tl_index];
+        float tr_v = m_v_velocity_prev[tr_index];
+        float bl_v = m_v_velocity_prev[bl_index];
+        float br_v = m_v_velocity_prev[br_index];
 
         //distance from edges
         float dx = x_sample - x_floor;
@@ -303,17 +308,25 @@ void Grid::diffuseVel(float dt){
         if(x>0 && x < m_width-1 &&
            y>0 && y < m_height-1)
            {
+
+            //calc corner indices
+
+            std::size_t l_index = x-1+y*m_width;
+            std::size_t r_index = x+1+y*m_width;
+            std::size_t u_index = x+y-1*m_width;
+            std::size_t d_index = x+y+1*m_width;
+
             //getting data for laplacian
-            left_u = m_u_velocity_prev[calcPos(x-1,y)];
-            right_u = m_u_velocity_prev[calcPos(x+1,y)];
-            up_u = m_u_velocity_prev[calcPos(x,y-1)];
-            down_u = m_u_velocity_prev[calcPos(x,y+1)];
+            left_u = m_u_velocity_prev[l_index];
+            right_u = m_u_velocity_prev[r_index];
+            up_u = m_u_velocity_prev[u_index];
+            down_u = m_u_velocity_prev[d_index];
             center_u = m_u_velocity_prev[i];
 
-            left_v = m_v_velocity_prev[calcPos(x-1,y)];
-            right_v = m_v_velocity_prev[calcPos(x+1,y)];
-            up_v = m_v_velocity_prev[calcPos(x,y-1)];
-            down_v = m_v_velocity_prev[calcPos(x,y+1)];
+            left_v = m_v_velocity_prev[l_index];
+            right_v = m_v_velocity_prev[r_index];
+            up_v = m_v_velocity_prev[u_index];
+            down_v = m_v_velocity_prev[d_index];
             center_v = m_v_velocity_prev[i];
 
             //calculate laplacian
@@ -416,17 +429,14 @@ void Grid::calcDivergence(){
 
                     float div =  ((xr-xl)/2)+((yb-yt)/2);
 
-                    // if(x>2 && x<m_width-2
-                    // && y>2 && y<m_height-2){
-                    // }
                     max_div = std::max(max_div, abs(div));
 
-                    m_divergence.at(index) = div;
+                    m_divergence[index] = div;
                 
                 }
             }
         }
-        std::cout << "max divergence: " << max_div << "\n";
+    //    std::cout << "max divergence: " << max_div << "\n";
 };
 
 void Grid::solvePressure(){
@@ -447,9 +457,9 @@ void Grid::solvePressure(){
                         float yt = m_pressure_prev[x+(y-1)*m_width];
                         float yb = m_pressure_prev[x+(y+1)*m_width];
 
-                        float pressure =  (xl+xr+yt+yb - m_divergence.at(index))/4.0f;
+                        float pressure =  (xl+xr+yt+yb - m_divergence[index])/4.0f;
 
-                        m_pressure.at(index) = pressure;
+                        m_pressure[index] = pressure;
                     
                     }
                 }
@@ -525,7 +535,8 @@ void Grid::addSource(size_t x, size_t y, float size){
                 float dist = abs(distance(sf::Vector2f(x,y), sf::Vector2f(x+dx,y+dy)));
                 if(dist < abs(distance(sf::Vector2f(x,y), sf::Vector2f(x-size,y)))){
 
-                    size_t pos = calcPos(x+dx,y+dy);
+                    
+                    size_t pos = x+dx+(y+dy)*m_width;
                     m_density[pos] = 1;
                 }
             }
@@ -559,10 +570,10 @@ void Grid::diffuse(float dt){
            y>0 && y < m_height-1)
            {
             //getting data for laplacian
-            left = m_density_prev[calcPos(x-1,y)];
-            right = m_density_prev[calcPos(x+1,y)];
-            up = m_density_prev[calcPos(x,y-1)];
-            down = m_density_prev[calcPos(x,y+1)];
+            left = m_density_prev[x-1+y*m_width];
+            right = m_density_prev[x+1+y*m_width];
+            up = m_density_prev[x+(y-1)*m_width];
+            down = m_density_prev[x+(y+1)*m_width];
             center = m_density_prev[i];
 
             //calculate laplacian
@@ -606,10 +617,10 @@ void Grid::advect(float dt){
         std::size_t y_high = std::clamp(std::ceil(new_y),2.f,m_height-2*1.f);
 
         //finding values at corners
-        float tl = m_density_prev[calcPos(x_low,y_low)];
-        float tr = m_density_prev[calcPos(x_high,y_low)];
-        float bl = m_density_prev[calcPos(x_low,y_high)];
-        float br = m_density_prev[calcPos(x_high,y_high)];
+        float tl = m_density_prev[x_low+y_low*m_width];
+        float tr = m_density_prev[x_high+y_low*m_width];
+        float bl = m_density_prev[x_low+y_high*m_width];
+        float br = m_density_prev[x_high+y_high*m_width];
 
         //distance from edges
         float dx = new_x - x_low;
