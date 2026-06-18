@@ -29,8 +29,8 @@ m_advect_ms(0.f),
 m_diffuse_ms(0.f),
 m_diff_co(1.f),
 m_decay(0.999f),
-m_vel_decay(0.96f),
-m_viscosity(1.f),
+m_vel_decay(0.9f),
+m_viscosity(0.01f),
 m_curl_mult(1000)
 {
 
@@ -119,12 +119,12 @@ void Grid::update(float dt){
     
     
     //Diffuse velocity
-    swapVel();
-    diffuseVel(dt*.1);  
+    // swapVel();
+    // diffuseVel(dt*.1);  
     velBoundaries();
 
     //second pressure solve
-    //projectStep();
+    projectStep();
     decayVel();  
 
     //Add density source
@@ -133,7 +133,7 @@ void Grid::update(float dt){
     //Diffuse
     swapDensity();
     m_performance_clock.restart();
-    diffuse(dt);
+    diffuse(dt*5);
     m_diffuse_ms = m_performance_clock.restart().asMilliseconds();
     
     //Advect
@@ -605,9 +605,9 @@ void Grid::advect(float dt){
         float u_vel = m_u_velocity[i];
 
         //xy values for index
-        xy = get_xy(i);
-        float x = static_cast<float>(xy.first);
-        float y = static_cast<float>(xy.second);
+        //xy = get_xy(i);
+        float x = static_cast<float>(i%m_width);
+        float y = static_cast<float>(i/m_width);
 
         //backwards location lookup 
         float new_x = x - u_vel*dt;
