@@ -187,14 +187,11 @@ void Grid::calcNoise(float dt){
 };
 
 void Grid::calcVel(float dt){
-    for(std::size_t y = 0; y<m_height; y++){
+    for(std::size_t y = 1; y<m_height-1; y++){
         std::size_t row = y*m_width;
 
-         for(std::size_t x = 0; x<m_width; x++){
+         for(std::size_t x = 1; x<m_width-1; x++){
             std::size_t index = row+x;
-
-            if(x>0 && x<m_width-1
-            && y>0 && y<m_height-1){
 
 
 
@@ -209,7 +206,7 @@ void Grid::calcVel(float dt){
                 m_u_velocity[index] += -dy*m_curl_mult*dt;
                 m_v_velocity[index] += dx*m_curl_mult*dt;
                
-            }
+            
 
         }
     }
@@ -343,18 +340,15 @@ void Grid::diffuseVel(float dt){
     float new_u_vel = 0.f;
     float new_v_vel = 0.f;
 
-    for(std::size_t y = 0; y<m_height; y++){
+    for(std::size_t y = 1; y<m_height-1; y++){
         //minimize mult operations
         std::size_t row = y*m_width;
 
-        for(std::size_t x = 0; x<m_width; x++){
+        for(std::size_t x = 1; x<m_width-1; x++){
             //calculate index
             std::size_t i = row+x; 
 
-            //checking boundary conditions
-            if(x>0 && x < m_width-1 &&
-            y>0 && y < m_height-1)
-            {
+
 
                 //calc corner indices
 
@@ -387,12 +381,8 @@ void Grid::diffuseVel(float dt){
                 m_u_velocity[i] = new_u_vel;
                 m_v_velocity[i] = new_v_vel;
 
-                }
-            else{
-                //leave boundary conditions the same
-                m_u_velocity[i] = m_u_velocity_prev[i];
-                m_v_velocity[i] = m_v_velocity_prev[i];
-                }
+                
+
         }
     }
 };
@@ -465,14 +455,12 @@ void Grid::calcDivergence(){
 
     float max_div = 0.f;
     
-    for(std::size_t y = 0; y<m_height; y++){
+    for(std::size_t y =1; y<m_height-1; y++){
         //calc row once per line
         std::size_t row = y*m_width;
 
-            for(std::size_t x = 0; x<m_width; x++){
+            for(std::size_t x = 1; x<m_width-1; x++){
 
-                if(x>0 && x<m_width-1
-                && y>0 && y<m_height-1){
 
                     std::size_t index = row+x;
 
@@ -487,7 +475,7 @@ void Grid::calcDivergence(){
 
                     m_divergence[index] = div;
                 
-                }
+                
             }
         }
     //    std::cout << "max divergence: " << max_div << "\n";
@@ -498,15 +486,14 @@ void Grid::solvePressure(){
     std::size_t k = 0;
     while(k<20){
 
-        for(std::size_t y = 0; y<m_height; y++){
+        for(std::size_t y = 1; y<m_height-1; y++){
 
             //calc row once per line
             std::size_t row = y*m_width;
 
-                for(std::size_t x = 0; x<m_width; x++){
+                for(std::size_t x = 1; x<m_width-1; x++){
 
-                    if(x>0 && x<m_width-1
-                    && y>0 && y<m_height-1){
+
 
                         std::size_t index = x+row;
 
@@ -519,7 +506,7 @@ void Grid::solvePressure(){
 
                         m_pressure[index] = pressure;
                     
-                    }
+                    
                 }
             }
             pressureBoundaries();
@@ -534,13 +521,11 @@ void Grid::solvePressure(){
 
 void Grid::project(){
 
-        for(std::size_t y = 0; y<m_height; y++){
+        for(std::size_t y = 1; y<m_height-1; y++){
             std::size_t row = y*m_width;
 
-            for(std::size_t x = 0; x<m_width; x++){
+            for(std::size_t x = 1; x<m_width-1; x++){
 
-                if(x>0 && x<m_width-1
-                && y>0 && y<m_height-1){
 
                     std::size_t index = x+row;
 
@@ -555,7 +540,7 @@ void Grid::project(){
                     m_u_velocity[index] -= pres_x;
                     m_v_velocity[index] -= pres_y;
                 
-                }
+                
             }
         }
 
@@ -574,18 +559,15 @@ void Grid::diffuse(float dt){
     float lap = 0.f;
     float new_dens = 0.f;
 
-    for(std::size_t y = 0; y<m_height; y++){
+    for(std::size_t y = 1; y<m_height-1; y++){
 
         std::size_t row = y*m_width;
 
-        for(std::size_t x = 0; x<m_width; x++){
+        for(std::size_t x = 1; x<m_width-1; x++){
 
             std::size_t index = row+x;
 
-            //checking boundary conditions
-            if(x>0 && x < m_width-1 &&
-                y>0 && y < m_height-1)
-            {
+
                 //getting data for laplacian
                 left = m_density_prev[index-1];
                 right = m_density_prev[index+1];
@@ -600,11 +582,8 @@ void Grid::diffuse(float dt){
                 new_dens = m_density_prev[index]+ m_diff_co*lap*dt;
                 m_density[index] = new_dens;
 
-                }
-            else{
-                //leave boundary conditions the same
-                m_density[index] = m_density_prev[index];
-                }
+                
+
             }
         }
 }
