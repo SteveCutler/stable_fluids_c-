@@ -72,10 +72,8 @@ class Grid
 
         void diffuse(float dt);
         
-        void advect(float dt);
+        void advect_decay(float dt);
         
-        void decay(float dt);
-
         FastNoiseLite m_noise_gen;
 
 

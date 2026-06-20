@@ -139,13 +139,9 @@ void Grid::update(float dt){
     //Advect
     swapDensity();
     m_performance_clock.restart();
-    advect(dt);
+    advect_decay(dt);
     m_advect_ms = m_performance_clock.restart().asMilliseconds();
     
-
-    //Decay
-    swapDensity();
-    decay(dt);
 }
     
 
@@ -202,10 +198,10 @@ void Grid::calcVel(float dt){
 
 
 
-                float xl = m_noise[(x-1)+y*m_width];
-                float xr = m_noise[(x+1)+y*m_width];
-                float yt = m_noise[x+(y-1)*m_width];
-                float yb = m_noise[x+(y+1)*m_width];
+                float xl = m_noise[index-1];
+                float xr = m_noise[index+1];
+                float yt = m_noise[index-m_width];
+                float yb = m_noise[index+m_width];
 
                 float dx = (xr-xl)/2;
                 float dy = (yb-yt)/2;
@@ -218,6 +214,41 @@ void Grid::calcVel(float dt){
         }
     }
 }
+
+
+void Grid::swapDensity(){
+    std::swap(m_density, m_density_prev);
+}
+
+float Grid::distance(sf::Vector2f first, sf::Vector2f second){
+    float x = second.x-first.x;
+    float y = second.y-first.y;
+    float dist = std::sqrt((x*x + y*y));
+    return dist;
+}
+
+void Grid::addSource(size_t x, size_t y, float size){
+
+    for(int dx = -size; dx<=size; dx++){
+        for (int dy = -size; dy <=size; dy++){
+
+
+            if(x+dx >0 && x+dx<m_width
+            && y+dy>0 && y+dy<m_height){
+
+                float dist = abs(distance(sf::Vector2f(x,y), sf::Vector2f(x+dx,y+dy)));
+                if(dist < abs(distance(sf::Vector2f(x,y), sf::Vector2f(x-size,y)))){
+
+                    
+                    size_t pos = x+dx+(y+dy)*m_width;
+                    m_density[pos] = 1;
+                }
+            }
+
+        }
+    }
+}
+
 
 //DYNAMIC VEL FUNCTIONS
 
@@ -445,10 +476,10 @@ void Grid::calcDivergence(){
 
                     std::size_t index = row+x;
 
-                    float xl = m_u_velocity[(x-1)+y*m_width];
-                    float xr = m_u_velocity[(x+1)+y*m_width];
-                    float yt = m_v_velocity[x+(y-1)*m_width];
-                    float yb = m_v_velocity[x+(y+1)*m_width];
+                    float xl = m_u_velocity[index-1];
+                    float xr = m_u_velocity[index+1];
+                    float yt = m_v_velocity[index-m_width];
+                    float yb = m_v_velocity[index+m_width];
 
                     float div =  ((xr-xl)/2)+((yb-yt)/2);
 
@@ -479,10 +510,10 @@ void Grid::solvePressure(){
 
                         std::size_t index = x+row;
 
-                        float xl = m_pressure_prev[(x-1)+y*m_width];
-                        float xr = m_pressure_prev[(x+1)+y*m_width];
-                        float yt = m_pressure_prev[x+(y-1)*m_width];
-                        float yb = m_pressure_prev[x+(y+1)*m_width];
+                        float xl = m_pressure_prev[index-1];
+                        float xr = m_pressure_prev[index+1];
+                        float yt = m_pressure_prev[index-m_width];
+                        float yb = m_pressure_prev[index+m_width];
 
                         float pressure =  (xl+xr+yt+yb - m_divergence[index])/4.0f;
 
@@ -513,10 +544,10 @@ void Grid::project(){
 
                     std::size_t index = x+row;
 
-                    float xl = m_pressure[(x-1)+y*m_width];
-                    float xr = m_pressure[(x+1)+y*m_width];
-                    float yt = m_pressure[x+(y-1)*m_width];
-                    float yb = m_pressure[x+(y+1)*m_width];
+                    float xl = m_pressure[index-1];
+                    float xr = m_pressure[index+1];
+                    float yt = m_pressure[index-m_width];
+                    float yb = m_pressure[index+m_width];
 
                     float pres_x =  (xr-xl)/2.f;
                     float pres_y =  (yb-yt)/2.f;
@@ -529,40 +560,6 @@ void Grid::project(){
         }
 
 };
-
-void Grid::swapDensity(){
-    std::swap(m_density, m_density_prev);
-}
-
-float Grid::distance(sf::Vector2f first, sf::Vector2f second){
-    float x = second.x-first.x;
-    float y = second.y-first.y;
-    float dist = std::sqrt((x*x + y*y));
-    return dist;
-}
-
-void Grid::addSource(size_t x, size_t y, float size){
-
-    for(int dx = -size; dx<=size; dx++){
-        for (int dy = -size; dy <=size; dy++){
-
-
-            if(x+dx >0 && x+dx<m_width
-            && y+dy>0 && y+dy<m_height){
-
-                float dist = abs(distance(sf::Vector2f(x,y), sf::Vector2f(x+dx,y+dy)));
-                if(dist < abs(distance(sf::Vector2f(x,y), sf::Vector2f(x-size,y)))){
-
-                    
-                    size_t pos = x+dx+(y+dy)*m_width;
-                    m_density[pos] = 1;
-                }
-            }
-
-        }
-    }
-}
-
 
 
 void Grid::diffuse(float dt){
@@ -583,36 +580,36 @@ void Grid::diffuse(float dt){
 
         for(std::size_t x = 0; x<m_width; x++){
 
-            std::size_t i = row+x;
+            std::size_t index = row+x;
 
             //checking boundary conditions
             if(x>0 && x < m_width-1 &&
                 y>0 && y < m_height-1)
             {
                 //getting data for laplacian
-                left = m_density_prev[x-1+y*m_width];
-                right = m_density_prev[x+1+y*m_width];
-                up = m_density_prev[x+(y-1)*m_width];
-                down = m_density_prev[x+(y+1)*m_width];
-                center = m_density_prev[i];
+                left = m_density_prev[index-1];
+                right = m_density_prev[index+1];
+                up = m_density_prev[index-m_width];
+                down = m_density_prev[index+m_width];
+                center = m_density_prev[index];
 
                 //calculate laplacian
                 lap = left+right+up+down - (4*center);
 
                 //calculate and write new density
-                new_dens = m_density_prev[i]+ m_diff_co*lap*dt;
-                m_density[i] = new_dens;
+                new_dens = m_density_prev[index]+ m_diff_co*lap*dt;
+                m_density[index] = new_dens;
 
                 }
             else{
                 //leave boundary conditions the same
-                m_density[i] = m_density_prev[i];
+                m_density[index] = m_density_prev[index];
                 }
             }
         }
 }
 
-void Grid::advect(float dt){
+void Grid::advect_decay(float dt){
 
 
     float new_dens = 0.f;
@@ -653,19 +650,14 @@ void Grid::advect(float dt){
             float br_weight = dx*dy;
 
             new_dens = tl*tl_weight + tr*tr_weight + bl*bl_weight + br*br_weight;
-            m_density[i] = new_dens;
+
+            //included decay here to minimize operations
+            m_density[i] = new_dens*m_decay;
         }
 
     }
 
 }
 
-//decay kernel
-void Grid::decay(float dt){
-    for( std::size_t i = 0; i<m_density.size(); i++){
-        //sample density multiply by decay coefficient
-        m_density[i] = m_density_prev[i]*m_decay;
-    }
-}
 
 
