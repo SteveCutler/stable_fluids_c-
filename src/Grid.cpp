@@ -217,27 +217,30 @@ void Grid::swapDensity(){
     std::swap(m_density, m_density_prev);
 }
 
-float Grid::distance(sf::Vector2f first, sf::Vector2f second){
-    float x = second.x-first.x;
-    float y = second.y-first.y;
-    float dist = std::sqrt((x*x + y*y));
-    return dist;
-}
 
 void Grid::addSource(size_t x, size_t y, float size){
 
-    for(int dx = -size; dx<=size; dx++){
-        for (int dy = -size; dy <=size; dy++){
+    float radius = size;
+    for(int dy = -size; dy<=size; dy++){
+        //new y
+        std::size_t new_y = (y+dy);
+        std::size_t row = new_y*m_width;
+        
+        for (int dx = -size; dx <=size; dx++){
+            //new_x
+            std::size_t new_x = x+dx;
 
 
-            if(x+dx >0 && x+dx<m_width
-            && y+dy>0 && y+dy<m_height){
+            if(new_x>1 && new_x<m_width-1
+            && new_y>1 && new_y<m_height-1){
 
-                float dist = abs(distance(sf::Vector2f(x,y), sf::Vector2f(x+dx,y+dy)));
-                if(dist < abs(distance(sf::Vector2f(x,y), sf::Vector2f(x-size,y)))){
+                
+                float dist = (dx*dx) + (dy*dy);
+                float rad_sqr = size*size;
+                
+                if(dist < rad_sqr){
 
-                    
-                    size_t pos = x+dx+(y+dy)*m_width;
+                    size_t pos = new_x+row;
                     m_density[pos] = 1;
                 }
             }

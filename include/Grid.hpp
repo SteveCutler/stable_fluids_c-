@@ -62,8 +62,6 @@ class Grid
 
         void projectStep();
         
-        float distance(sf::Vector2f first, sf::Vector2f second);
-        
         void addSource(size_t x, size_t y, float size);
 
         void spawn(std::size_t width, std::size_t height);
@@ -73,7 +71,7 @@ class Grid
         void diffuse(float dt);
         
         void advect_decay(float dt);
-        
+
         FastNoiseLite m_noise_gen;
 
 
