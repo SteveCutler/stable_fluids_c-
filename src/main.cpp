@@ -202,7 +202,7 @@ int main()
         window.draw(sprite);
 
         //render velocity arrows
-       // window.draw(arrows);
+        //window.draw(arrows);
 
         //render debug text
         window.draw(fpsText);

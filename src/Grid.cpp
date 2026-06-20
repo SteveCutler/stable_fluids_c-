@@ -605,19 +605,19 @@ void Grid::advect(float dt){
         float u_vel = m_u_velocity[i];
 
         //xy values for index
-        //xy = get_xy(i);
+
         float x = static_cast<float>(i%m_width);
         float y = static_cast<float>(i/m_width);
 
         //backwards location lookup 
-        float new_x = x - u_vel*dt;
-        float new_y = y - v_vel*dt;
+        float new_x = std::clamp((x - u_vel*dt),1.f,m_width-2.f);
+        float new_y = std::clamp((y - v_vel*dt),1.f,m_height-2.f);
 
         //finding 4 corners for bilinear interpolation, clamping in boundaries
-        std::size_t x_low = std::clamp(std::floor(new_x),2.f,m_width-2*1.f);
-        std::size_t x_high = std::clamp(std::ceil(new_x),2.f,m_width-2*1.f);
-        std::size_t y_low = std::clamp(std::floor(new_y),2.f,m_height-2*1.f);
-        std::size_t y_high = std::clamp(std::ceil(new_y),2.f,m_height-2*1.f);
+        std::size_t x_low = std::floor(new_x);
+        std::size_t x_high = x_low+1;
+        std::size_t y_low =std::floor(new_y);
+        std::size_t y_high = y_low+1;
 
         //finding values at corners
         float tl = m_density_prev[x_low+y_low*m_width];
