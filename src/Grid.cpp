@@ -31,6 +31,11 @@ m_diff_co(1.f),
 m_decay(0.999f),
 m_vel_decay(0.9f),
 m_viscosity(0.01f),
+m_pressure_iter(15),
+m_advectVel_ms(0.f),
+m_project_ms(0.f),
+m_addSource_ms(0.f),
+m_render_ms(0.f),
 m_curl_mult(1000)
 {
 
@@ -89,6 +94,18 @@ float Grid::time_advect() const{
     return m_advect_ms;
 };
 
+float Grid::time_advectVel() const{
+    return m_advectVel_ms;
+};
+
+float Grid::time_project() const{
+    return m_project_ms;
+};
+
+float Grid::time_addSource() const{
+    return m_addSource_ms;
+};
+
 
 //UPDATE LOOP
 
@@ -96,13 +113,13 @@ void Grid::update(float dt){
     //Create noise scalar field
     m_performance_clock.restart();
     calcNoise(dt*20);
-    m_noise_ms = m_performance_clock.restart().asMilliseconds();
+    m_noise_ms = m_performance_clock.restart().asMicroseconds()/1000.f;
     
     
     //Create vel gradient field based on noise
     m_performance_clock.restart();
     calcVel(dt);
-    m_vel_ms = m_performance_clock.restart().asMilliseconds();
+    m_vel_ms = m_performance_clock.restart().asMicroseconds()/1000.f;
     
     // apply velocity boundary calculations
     velBoundaries();
@@ -112,7 +129,9 @@ void Grid::update(float dt){
 
     //Advect velocity
     swapVel();
+    m_performance_clock.restart();
     advectVel(dt);
+    m_advectVel_ms = m_performance_clock.restart().asMicroseconds()/1000.f;
 
     //apply velocity boundary conditions
     //velBoundaries();
@@ -124,23 +143,27 @@ void Grid::update(float dt){
     velBoundaries();
 
     //second pressure solve
+    m_performance_clock.restart();
     projectStep();
+    m_project_ms = m_performance_clock.restart().asMicroseconds()/1000.f;
     decayVel();  
 
     //Add density source
+    m_performance_clock.restart();
     addSource(m_width/2,m_height/2, m_source);
+    m_addSource_ms = m_performance_clock.restart().asMicroseconds()/1000.f;
     
     //Diffuse
     swapDensity();
     m_performance_clock.restart();
     diffuse(dt*5);
-    m_diffuse_ms = m_performance_clock.restart().asMilliseconds();
+    m_diffuse_ms = m_performance_clock.restart().asMicroseconds()/1000.f;
     
     //Advect
     swapDensity();
     m_performance_clock.restart();
     advect_decay(dt);
-    m_advect_ms = m_performance_clock.restart().asMilliseconds();
+    m_advect_ms = m_performance_clock.restart().asMicroseconds()/1000.f;
     
 }
     
@@ -152,12 +175,12 @@ void Grid::projectStep(){
     clearPressure();
     m_performance_clock.restart();
     calcDivergence();
-    m_div_ms = m_performance_clock.restart().asMilliseconds();
+    m_div_ms = m_performance_clock.restart().asMicroseconds()/1000.f;
     
     
     m_performance_clock.restart();
     solvePressure();
-    m_pressure_ms = m_performance_clock.restart().asMilliseconds();
+    m_pressure_ms = m_performance_clock.restart().asMicroseconds()/1000.f;
     pressureBoundaries();
     
     //m_performance_clock.restart();
@@ -484,10 +507,38 @@ void Grid::calcDivergence(){
     //    std::cout << "max divergence: " << max_div << "\n";
 };
 
+void Grid::project(){
+    
+    for(std::size_t y = 1; y<m_height-1; y++){
+        std::size_t row = y*m_width;
+        
+        for(std::size_t x = 1; x<m_width-1; x++){
+            
+            
+            std::size_t index = x+row;
+            
+            float xl = m_pressure[index-1];
+            float xr = m_pressure[index+1];
+            float yt = m_pressure[index-m_width];
+            float yb = m_pressure[index+m_width];
+            
+            float pres_x =  (xr-xl)/2.f;
+            float pres_y =  (yb-yt)/2.f;
+            
+            m_u_velocity[index] -= pres_x;
+            m_v_velocity[index] -= pres_y;
+            
+            
+        }
+    }
+    
+};
+
+
 void Grid::solvePressure(){
 
     std::size_t k = 0;
-    while(k<20){
+    while(k<m_pressure_iter){
 
         for(std::size_t y = 1; y<m_height-1; y++){
 
@@ -505,7 +556,7 @@ void Grid::solvePressure(){
                         float yt = m_pressure_prev[index-m_width];
                         float yb = m_pressure_prev[index+m_width];
 
-                        float pressure =  (xl+xr+yt+yb - m_divergence[index])/4.0f;
+                        float pressure =  (xl+xr+yt+yb - m_divergence[index])*0.25f;
 
                         m_pressure[index] = pressure;
                     
@@ -521,34 +572,6 @@ void Grid::solvePressure(){
         pressureBoundaries();
 
 };
-
-void Grid::project(){
-
-        for(std::size_t y = 1; y<m_height-1; y++){
-            std::size_t row = y*m_width;
-
-            for(std::size_t x = 1; x<m_width-1; x++){
-
-
-                    std::size_t index = x+row;
-
-                    float xl = m_pressure[index-1];
-                    float xr = m_pressure[index+1];
-                    float yt = m_pressure[index-m_width];
-                    float yb = m_pressure[index+m_width];
-
-                    float pres_x =  (xr-xl)/2.f;
-                    float pres_y =  (yb-yt)/2.f;
-
-                    m_u_velocity[index] -= pres_x;
-                    m_v_velocity[index] -= pres_y;
-                
-                
-            }
-        }
-
-};
-
 
 void Grid::diffuse(float dt){
 

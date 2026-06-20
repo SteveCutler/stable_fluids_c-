@@ -31,6 +31,9 @@ class Grid
         float time_pressure() const;
         float time_diffuse() const;
         float time_advect() const;
+        float time_advectVel() const;
+        float time_project() const;
+        float time_addSource() const;
 
 
     private:
@@ -90,6 +93,7 @@ class Grid
         float m_elapsed;
         float m_curl_mult;
         float m_viscosity;
+        std::size_t m_pressure_iter;
 
         //Timing Debug variables
         float m_noise_ms;
@@ -98,6 +102,10 @@ class Grid
         float m_pressure_ms;
         float m_advect_ms;
         float m_diffuse_ms;
+        float m_advectVel_ms;
+        float m_project_ms;
+        float m_addSource_ms;
+        float m_render_ms;
 
         // SoA member variables
         std::vector<float> m_density;

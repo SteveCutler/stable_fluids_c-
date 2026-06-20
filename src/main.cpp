@@ -14,6 +14,7 @@ int main()
 
     // create a clock to track the elapsed time
     sf::Clock clock;
+    sf::Clock renderClock;
 
     // create the window
     sf::RenderWindow window(sf::VideoMode({width, height}), "Wind Sim");
@@ -80,6 +81,26 @@ int main()
     advect.setFillColor(sf::Color::White);
     advect.setPosition({5.f, 105.f});
 
+    sf::Text advectVel(font);
+    advectVel.setCharacterSize(12);
+    advectVel.setFillColor(sf::Color::White);
+    advectVel.setPosition({5.f, 120.f});
+
+    sf::Text project(font);
+    project.setCharacterSize(12);
+    project.setFillColor(sf::Color::White);
+    project.setPosition({5.f, 135.f});
+
+    sf::Text addSource(font);
+    addSource.setCharacterSize(12);
+    addSource.setFillColor(sf::Color::White);
+    addSource.setPosition({5.f, 150.f});
+
+    sf::Text render(font);
+    render.setCharacterSize(12);
+    render.setFillColor(sf::Color::White);
+    render.setPosition({5.f, 165.f});
+
 
     // run the main loop
     while (window.isOpen())
@@ -135,6 +156,20 @@ int main()
             "\nAdvect ms: " + std::to_string(Grid.time_advect())
         );
 
+        advectVel.setString(
+            "\nAdv Vel ms: " + std::to_string(Grid.time_advectVel())
+        );
+
+        project.setString(
+            "\nProject ms: " + std::to_string(Grid.time_project())
+        );
+
+        addSource.setString(
+            "\nAdd Source ms: " + std::to_string(Grid.time_addSource())
+        );
+
+
+
 
 
         // update
@@ -142,6 +177,8 @@ int main()
 
 
         // DRAW BLOCK
+
+        renderClock.restart();
 
         const auto& density = Grid.density();
         const auto& u_velocity = Grid.u_velocity();
@@ -194,6 +231,12 @@ int main()
 
         // Load pixel RGBA data into texture
         texture.update(pixels.data());
+
+
+        //calc render time
+        render.setString(
+            "\nRender ms: " + std::to_string(renderClock.restart().asMicroseconds()/1000.f)
+        );
         
         // clear window
         window.clear();
@@ -209,12 +252,16 @@ int main()
         window.draw(msText);
 
         //kernel profiling text
+        window.draw(addSource);
         window.draw(noise);
         window.draw(vel);
         window.draw(divergence);
         window.draw(pressure);
         window.draw(diffuse);
         window.draw(advect);
+        window.draw(advectVel);
+        window.draw(project);
+        window.draw(render);
 
         // display
         window.display();
