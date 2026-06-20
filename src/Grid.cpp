@@ -192,12 +192,15 @@ void Grid::calcNoise(float dt){
 
 void Grid::calcVel(float dt){
     for(std::size_t y = 0; y<m_height; y++){
+        std::size_t row = y*m_width;
+
          for(std::size_t x = 0; x<m_width; x++){
+            std::size_t index = row+x;
 
             if(x>0 && x<m_width-1
             && y>0 && y<m_height-1){
 
-                std::size_t index = x+y*m_width;
+
 
                 float xl = m_noise[(x-1)+y*m_width];
                 float xr = m_noise[(x+1)+y*m_width];
@@ -222,14 +225,22 @@ void Grid::advectVel(float dt){
     float new_u_vel = 0.f;
     float new_v_vel = 0.f;
 
-    for(std::size_t i=0; i<m_density.size(); i++){
+    //switch to row first y x loop
+    for(std::size_t y = 0; y<m_height; y++){
+        
+        //reducing multiplication calculations by doing it once per row
+        std::size_t row = y*m_width;
+
+        for(std::size_t x = 0; x<m_width; x++){
+
+        //addition calculations are cheap for CPU
+        std::size_t i = row + x;
+    
         //index velocity
         float old_u_vel = m_u_velocity_prev[i];
         float old_v_vel = m_v_velocity_prev[i];
 
-        //xy values for index
-        std::size_t x = i%(m_width);
-        std::size_t y = std::floor(i/(m_width));
+        //removed modulo and multiplicatin operations happening for every cell
 
         //backwards location lookup 
         float new_u_pos = x - old_u_vel*dt;
@@ -276,7 +287,9 @@ void Grid::advectVel(float dt){
         m_u_velocity[i] = new_u_vel;
         m_v_velocity[i] = new_v_vel;
 
+        }
     }
+
 };
 
 void Grid::diffuseVel(float dt){
@@ -299,53 +312,57 @@ void Grid::diffuseVel(float dt){
     float new_u_vel = 0.f;
     float new_v_vel = 0.f;
 
-    for (std::size_t i = 0; i<m_density.size(); i++){
-        //get xy coordinates
-        std::size_t x = i%(m_width);
-        std::size_t y = std::floor(i/(m_width));
+    for(std::size_t y = 0; y<m_height; y++){
+        //minimize mult operations
+        std::size_t row = y*m_width;
 
-        //checking boundary conditions
-        if(x>0 && x < m_width-1 &&
-           y>0 && y < m_height-1)
-           {
+        for(std::size_t x = 0; x<m_width; x++){
+            //calculate index
+            std::size_t i = row+x; 
 
-            //calc corner indices
+            //checking boundary conditions
+            if(x>0 && x < m_width-1 &&
+            y>0 && y < m_height-1)
+            {
 
-            std::size_t l_index = i-1;
-            std::size_t r_index = i+1;
-            std::size_t u_index = i-m_width;
-            std::size_t d_index = i+m_width;
+                //calc corner indices
 
-            //getting data for laplacian
-            left_u = m_u_velocity_prev[l_index];
-            right_u = m_u_velocity_prev[r_index];
-            up_u = m_u_velocity_prev[u_index];
-            down_u = m_u_velocity_prev[d_index];
-            center_u = m_u_velocity_prev[i];
+                std::size_t l_index = i-1;
+                std::size_t r_index = i+1;
+                std::size_t u_index = i-m_width;
+                std::size_t d_index = i+m_width;
 
-            left_v = m_v_velocity_prev[l_index];
-            right_v = m_v_velocity_prev[r_index];
-            up_v = m_v_velocity_prev[u_index];
-            down_v = m_v_velocity_prev[d_index];
-            center_v = m_v_velocity_prev[i];
+                //getting data for laplacian
+                left_u = m_u_velocity_prev[l_index];
+                right_u = m_u_velocity_prev[r_index];
+                up_u = m_u_velocity_prev[u_index];
+                down_u = m_u_velocity_prev[d_index];
+                center_u = m_u_velocity_prev[i];
 
-            //calculate laplacian
-            lap_u = left_u+right_u+up_u+down_u - (4*center_u);
-            lap_v = left_v+right_v+up_v+down_v - (4*center_v);
+                left_v = m_v_velocity_prev[l_index];
+                right_v = m_v_velocity_prev[r_index];
+                up_v = m_v_velocity_prev[u_index];
+                down_v = m_v_velocity_prev[d_index];
+                center_v = m_v_velocity_prev[i];
 
-            //calculate and write new density
-            new_u_vel = m_u_velocity_prev[i]+ m_viscosity*lap_u*dt;
-            new_v_vel = m_v_velocity_prev[i]+ m_viscosity*lap_v*dt;
+                //calculate laplacian
+                lap_u = left_u+right_u+up_u+down_u - (4*center_u);
+                lap_v = left_v+right_v+up_v+down_v - (4*center_v);
 
-            m_u_velocity[i] = new_u_vel;
-            m_v_velocity[i] = new_v_vel;
+                //calculate and write new density
+                new_u_vel = m_u_velocity_prev[i]+ m_viscosity*lap_u*dt;
+                new_v_vel = m_v_velocity_prev[i]+ m_viscosity*lap_v*dt;
 
-            }
-        else{
-            //leave boundary conditions the same
-            m_u_velocity[i] = m_u_velocity_prev[i];
-            m_v_velocity[i] = m_v_velocity_prev[i];
-            }
+                m_u_velocity[i] = new_u_vel;
+                m_v_velocity[i] = new_v_vel;
+
+                }
+            else{
+                //leave boundary conditions the same
+                m_u_velocity[i] = m_u_velocity_prev[i];
+                m_v_velocity[i] = m_v_velocity_prev[i];
+                }
+        }
     }
 };
 
@@ -418,12 +435,15 @@ void Grid::calcDivergence(){
     float max_div = 0.f;
     
     for(std::size_t y = 0; y<m_height; y++){
+        //calc row once per line
+        std::size_t row = y*m_width;
+
             for(std::size_t x = 0; x<m_width; x++){
 
                 if(x>0 && x<m_width-1
                 && y>0 && y<m_height-1){
 
-                    std::size_t index = x+y*m_width;
+                    std::size_t index = row+x;
 
                     float xl = m_u_velocity[(x-1)+y*m_width];
                     float xr = m_u_velocity[(x+1)+y*m_width];
@@ -448,12 +468,16 @@ void Grid::solvePressure(){
     while(k<20){
 
         for(std::size_t y = 0; y<m_height; y++){
+
+            //calc row once per line
+            std::size_t row = y*m_width;
+
                 for(std::size_t x = 0; x<m_width; x++){
 
                     if(x>0 && x<m_width-1
                     && y>0 && y<m_height-1){
 
-                        std::size_t index = x+y*m_width;
+                        std::size_t index = x+row;
 
                         float xl = m_pressure_prev[(x-1)+y*m_width];
                         float xr = m_pressure_prev[(x+1)+y*m_width];
@@ -480,12 +504,14 @@ void Grid::solvePressure(){
 void Grid::project(){
 
         for(std::size_t y = 0; y<m_height; y++){
+            std::size_t row = y*m_width;
+
             for(std::size_t x = 0; x<m_width; x++){
 
                 if(x>0 && x<m_width-1
                 && y>0 && y<m_height-1){
 
-                    std::size_t index = x+y*m_width;
+                    std::size_t index = x+row;
 
                     float xl = m_pressure[(x-1)+y*m_width];
                     float xr = m_pressure[(x+1)+y*m_width];
@@ -506,17 +532,6 @@ void Grid::project(){
 
 void Grid::swapDensity(){
     std::swap(m_density, m_density_prev);
-}
-
-size_t Grid::calcPos(size_t x, size_t y){
-    size_t pos = m_width*y+x;
-    return pos;
-}
-
-std::pair<std::size_t,std::size_t> Grid::get_xy(std::size_t i){
-    size_t x = i%m_width;
-    size_t y = i/m_width;
-    return std::pair(x,y);
 }
 
 float Grid::distance(sf::Vector2f first, sf::Vector2f second){
@@ -562,81 +577,84 @@ void Grid::diffuse(float dt){
     float lap = 0.f;
     float new_dens = 0.f;
 
-    for (std::size_t i = 0; i<m_density.size(); i++){
-        //get xy coordinates
-       // xy = get_xy(i);
-        std::size_t x=i%m_width;
-        std::size_t y=i/m_width;
+    for(std::size_t y = 0; y<m_height; y++){
 
-        //checking boundary conditions
-        if(x>0 && x < m_width-1 &&
-           y>0 && y < m_height-1)
-           {
-            //getting data for laplacian
-            left = m_density_prev[x-1+y*m_width];
-            right = m_density_prev[x+1+y*m_width];
-            up = m_density_prev[x+(y-1)*m_width];
-            down = m_density_prev[x+(y+1)*m_width];
-            center = m_density_prev[i];
+        std::size_t row = y*m_width;
 
-            //calculate laplacian
-            lap = left+right+up+down - (4*center);
+        for(std::size_t x = 0; x<m_width; x++){
 
-            //calculate and write new density
-            new_dens = m_density_prev[i]+ m_diff_co*lap*dt;
-            m_density[i] = new_dens;
+            std::size_t i = row+x;
 
+            //checking boundary conditions
+            if(x>0 && x < m_width-1 &&
+                y>0 && y < m_height-1)
+            {
+                //getting data for laplacian
+                left = m_density_prev[x-1+y*m_width];
+                right = m_density_prev[x+1+y*m_width];
+                up = m_density_prev[x+(y-1)*m_width];
+                down = m_density_prev[x+(y+1)*m_width];
+                center = m_density_prev[i];
+
+                //calculate laplacian
+                lap = left+right+up+down - (4*center);
+
+                //calculate and write new density
+                new_dens = m_density_prev[i]+ m_diff_co*lap*dt;
+                m_density[i] = new_dens;
+
+                }
+            else{
+                //leave boundary conditions the same
+                m_density[i] = m_density_prev[i];
+                }
             }
-        else{
-            //leave boundary conditions the same
-            m_density[i] = m_density_prev[i];
-            }
-    }
+        }
 }
 
 void Grid::advect(float dt){
 
-    std::pair<std::size_t,std::size_t> xy = std::pair(0,0);
+
     float new_dens = 0.f;
 
-    for(std::size_t i=0; i<m_density.size(); i++){
-        //index velocity
-        float v_vel = m_v_velocity[i];
-        float u_vel = m_u_velocity[i];
+    for(std::size_t y = 0; y<m_height; y++){
+        std::size_t row = y*m_width;
+        for(std::size_t x = 0; x<m_width; x++){
+            std::size_t i =row+x;
+            //index velocity
+            float v_vel = m_v_velocity[i];
+            float u_vel = m_u_velocity[i];
 
-        //xy values for index
 
-        float x = static_cast<float>(i%m_width);
-        float y = static_cast<float>(i/m_width);
+            //backwards location lookup 
+            float new_x = std::clamp((x - u_vel*dt),1.f,m_width-2.f);
+            float new_y = std::clamp((y - v_vel*dt),1.f,m_height-2.f);
 
-        //backwards location lookup 
-        float new_x = std::clamp((x - u_vel*dt),1.f,m_width-2.f);
-        float new_y = std::clamp((y - v_vel*dt),1.f,m_height-2.f);
+            //finding 4 corners for bilinear interpolation, clamping in boundaries
+            std::size_t x_low = std::floor(new_x);
+            std::size_t x_high = x_low+1;
+            std::size_t y_low =std::floor(new_y);
+            std::size_t y_high = y_low+1;
 
-        //finding 4 corners for bilinear interpolation, clamping in boundaries
-        std::size_t x_low = std::floor(new_x);
-        std::size_t x_high = x_low+1;
-        std::size_t y_low =std::floor(new_y);
-        std::size_t y_high = y_low+1;
+            //finding values at corners
+            float tl = m_density_prev[x_low+y_low*m_width];
+            float tr = m_density_prev[x_high+y_low*m_width];
+            float bl = m_density_prev[x_low+y_high*m_width];
+            float br = m_density_prev[x_high+y_high*m_width];
 
-        //finding values at corners
-        float tl = m_density_prev[x_low+y_low*m_width];
-        float tr = m_density_prev[x_high+y_low*m_width];
-        float bl = m_density_prev[x_low+y_high*m_width];
-        float br = m_density_prev[x_high+y_high*m_width];
+            //distance from edges
+            float dx = new_x - x_low;
+            float dy = new_y - y_low;
 
-        //distance from edges
-        float dx = new_x - x_low;
-        float dy = new_y - y_low;
+            //weighting calculations
+            float tl_weight = (1-dx)*(1-dy);
+            float tr_weight = dx*(1-dy);
+            float bl_weight = (1-dx)*dy;
+            float br_weight = dx*dy;
 
-        //weighting calculations
-        float tl_weight = (1-dx)*(1-dy);
-        float tr_weight = dx*(1-dy);
-        float bl_weight = (1-dx)*dy;
-        float br_weight = dx*dy;
-
-        new_dens = tl*tl_weight + tr*tr_weight + bl*bl_weight + br*br_weight;
-        m_density[i] = new_dens;
+            new_dens = tl*tl_weight + tr*tr_weight + bl*bl_weight + br*br_weight;
+            m_density[i] = new_dens;
+        }
 
     }
 
