@@ -203,13 +203,15 @@ int main()
             pixels[p+2] = value;//B
             pixels[p+3] = 255;  //Alpha channel
         }
+        
         std::size_t index = 0;
-        for (std::size_t x = 0; x<width; x+=16){
+        for (std::size_t y = 0; y<height; y+=16){
+            std::size_t row = y*width;
 
-            for(std::size_t y =0; y<height; y+=16){
+            for(std::size_t x =0; x<width; x+=16){
+                std::size_t i = row+x;
 
                 //extract u and v velocity directions
-                std::size_t i = x+y*width;
                 float u = u_velocity[i];
                 float v = v_velocity[i];
     

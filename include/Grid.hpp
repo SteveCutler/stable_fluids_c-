@@ -55,7 +55,7 @@ class Grid
 
         void calcDivergence();
 
-        void solvePressure();
+        void solvePressure(std::size_t begin, std::size_t end);
 
         void velBoundaries();
 

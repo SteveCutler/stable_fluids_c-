@@ -31,7 +31,7 @@ m_diff_co(1.f),
 m_decay(0.999f),
 m_vel_decay(0.9f),
 m_viscosity(0.01f),
-m_pressure_iter(15),
+m_pressure_iter(20),
 m_advectVel_ms(0.f),
 m_project_ms(0.f),
 m_addSource_ms(0.f),
@@ -172,14 +172,14 @@ void Grid::update(float dt){
 //HELPERS
 
 void Grid::projectStep(){
-    clearPressure();
+    //clearPressure();
     m_performance_clock.restart();
     calcDivergence();
     m_div_ms = m_performance_clock.restart().asMicroseconds()/1000.f;
     
     
     m_performance_clock.restart();
-    solvePressure();
+    solvePressure(1, m_height-1);
     m_pressure_ms = m_performance_clock.restart().asMicroseconds()/1000.f;
     pressureBoundaries();
     
@@ -535,12 +535,12 @@ void Grid::project(){
 };
 
 
-void Grid::solvePressure(){
+void Grid::solvePressure(std::size_t begin, std::size_t end){
 
     std::size_t k = 0;
     while(k<m_pressure_iter){
 
-        for(std::size_t y = 1; y<m_height-1; y++){
+        for(std::size_t y = begin; y<end; y++){
 
             //calc row once per line
             std::size_t row = y*m_width;

@@ -17,3 +17,7 @@ Noise
     -write my own perlin noise function 
 
     multiply velocity by density? clamp to 1
+
+Arrows
+    -add button to turn off or on Arrows
+    -if off turn off arrow calculations as well, likely slowing down performance
