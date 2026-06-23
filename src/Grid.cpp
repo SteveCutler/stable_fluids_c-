@@ -2,6 +2,8 @@
 #include <vector>
 #include<iostream>
 #include <random>
+#include <thread>
+#include <algorithm>
 
 
 
@@ -36,6 +38,7 @@ m_advectVel_ms(0.f),
 m_project_ms(0.f),
 m_addSource_ms(0.f),
 m_render_ms(0.f),
+m_mult_threaded(true),
 m_curl_mult(1000)
 {
 
@@ -48,6 +51,8 @@ m_curl_mult(1000)
     m_noise_gen.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
     m_noise_gen.SetSeed(distr(gen));
     m_noise_gen.SetFrequency(0.04f);
+
+    //std::cout<<"Max Thread count: " << std::thread::hardware_concurrency();
 
 }
 
@@ -179,9 +184,12 @@ void Grid::projectStep(){
     
     
     m_performance_clock.restart();
-    solvePressure(1, m_height-1);
+
+    //switch for turning on multithreaded mode
+    m_mult_threaded ? solvePressureThreaded(4) : solvePressure();
+
     m_pressure_ms = m_performance_clock.restart().asMicroseconds()/1000.f;
-    pressureBoundaries();
+    //pressureBoundaries();
     
     //m_performance_clock.restart();
     project();
@@ -535,41 +543,125 @@ void Grid::project(){
 };
 
 
-void Grid::solvePressure(std::size_t begin, std::size_t end){
-
+void Grid::solvePressure(){
+    //one iteratio of pressure solve
     std::size_t k = 0;
-    while(k<m_pressure_iter){
+    while (k<m_pressure_iter){
 
-        for(std::size_t y = begin; y<end; y++){
-
+        //exclude top boundaries
+        for(std::size_t y = 1; y<m_height-1; y++){
+    
             //calc row once per line
             std::size_t row = y*m_width;
+    
 
                 for(std::size_t x = 1; x<m_width-1; x++){
-
-
-
+    
                         std::size_t index = x+row;
-
+    
                         float xl = m_pressure_prev[index-1];
                         float xr = m_pressure_prev[index+1];
                         float yt = m_pressure_prev[index-m_width];
                         float yb = m_pressure_prev[index+m_width];
-
+    
                         float pressure =  (xl+xr+yt+yb - m_divergence[index])*0.25f;
-
+    
                         m_pressure[index] = pressure;
                     
                     
                 }
             }
+            k++;
             pressureBoundaries();
             std::swap(m_pressure, m_pressure_prev);
-            k++;
-            //std::cout << "max pressure =" << pressure_max << "\n" << "min pressure =" << pressure_min << "\n\n";
         }
         std::swap(m_pressure, m_pressure_prev);
+
+
+};
+
+void Grid::solvePressureRows(std::size_t begin, std::size_t end){
+
+    //one iteratio of pressure solve
+
+    for(std::size_t y = begin; y<end; y++){
+
+        //calc row once per line
+        std::size_t row = y*m_width;
+
+            for(std::size_t x = 1; x<m_width-1; x++){
+
+                    std::size_t index = x+row;
+
+                    float xl = m_pressure_prev[index-1];
+                    float xr = m_pressure_prev[index+1];
+                    float yt = m_pressure_prev[index-m_width];
+                    float yb = m_pressure_prev[index+m_width];
+
+                    float pressure =  (xl+xr+yt+yb - m_divergence[index])*0.25f;
+
+                    m_pressure[index] = pressure;
+                
+                
+            }
+        }
+
+};
+
+void Grid::solvePressureThreaded(std::size_t thread_count){
+    std::size_t k = 0;
+
+    while(k<m_pressure_iter){
+
+        //calc relevant variables for threading
+        std::size_t y_begin = 1;
+        std::size_t y_end = m_height-1;
+        std::size_t total_rows = y_end - y_begin;
+    
+        //total rows to be processed, leaving out the boundaries
+        std::size_t rows_per_thread = (total_rows + thread_count-1)/thread_count;
+    
+        //creating thread container and reserving space
+        std::vector<std::thread> threads;
+        threads.reserve(thread_count);
+    
+        for ( std::size_t n = 0; n<thread_count; n++){
+            //calc start and end range
+            std::size_t start = 1+n*rows_per_thread;
+            std::size_t end_line = start+rows_per_thread;
+
+            //range check for end line
+            std::size_t end = std::min(end_line,y_end);
+    
+            //range check
+            if(start>=end){
+                continue;
+            }
+    
+            //start threads and add them to container
+            threads.emplace_back(
+                std::thread(
+                    &Grid::solvePressureRows,
+                    this,
+                    start,
+                    end
+                )
+            );
+        }
+
+        //once all threads are created, wait until done
+        for(auto& thread : threads){
+            thread.join();
+        }
+
+        //then proceed with end of iteration loop like normal
         pressureBoundaries();
+        k++;
+        std::swap(m_pressure,m_pressure_prev);
+    }
+
+    //swap back to most recent pressure grid on last iteration, optimize this away at some point
+    std::swap(m_pressure,m_pressure_prev);
 
 };
 

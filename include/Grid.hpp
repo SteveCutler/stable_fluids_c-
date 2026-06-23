@@ -55,7 +55,12 @@ class Grid
 
         void calcDivergence();
 
-        void solvePressure(std::size_t begin, std::size_t end);
+        //single threaded pressure solve function
+        void solvePressure();
+
+        //multi threaded implementation
+        void solvePressureRows(std::size_t begin, std::size_t end);
+        void solvePressureThreaded(std::size_t thread_count);
 
         void velBoundaries();
 
@@ -94,6 +99,7 @@ class Grid
         float m_curl_mult;
         float m_viscosity;
         std::size_t m_pressure_iter;
+        bool m_mult_threaded;
 
         //Timing Debug variables
         float m_noise_ms;
