@@ -5,6 +5,7 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Window.hpp>
 #include "../include/FastNoiseLite.h"
+#include <thread>
 
 
 class Grid
@@ -12,6 +13,51 @@ class Grid
 
     public:
         Grid(std::size_t width, std::size_t height);
+        
+        //multithreading by row template
+        template< typename Func>
+            void parallelForRows(
+                std::size_t y_begin,
+                std::size_t y_end,
+                Func func){
+
+                    //calc relevant variables for threading
+                    std::size_t total_rows = y_end - y_begin;
+                
+                    //total rows to be processed, leaving out the boundaries
+                    std::size_t rows_per_thread = (total_rows + m_thread_count-1)/m_thread_count;
+                
+                    //creating thread container and reserving space
+                    std::vector<std::thread> threads;
+                    threads.reserve(m_thread_count);
+                
+                    for ( std::size_t n = 0; n<m_thread_count; n++){
+                        //calc start and end range
+                        std::size_t start = y_begin+n*rows_per_thread;
+                        std::size_t end_line = start+rows_per_thread;
+
+                        //range check for end line
+                        std::size_t end = std::min(end_line,y_end);
+                
+                        //range check
+                        if(start>=end){
+                            continue;
+                        }
+                
+                        //start threads and add them to container
+                        threads.emplace_back(
+                                func,
+                                start,
+                                end
+                            
+                        );
+                    }
+
+                    //once all threads are created, wait until done
+                    for(auto& thread : threads){
+                        thread.join();
+                    }
+                }
 
         void update(float dt);
 
@@ -50,6 +96,7 @@ class Grid
         void clearPressure();
         
         void calcNoise(float dt);
+        void calcNoiseRows(std::size_t begin, std::size_t end);
 
         void calcVel(float dt);
 
@@ -99,6 +146,9 @@ class Grid
         float m_curl_mult;
         float m_viscosity;
         std::size_t m_pressure_iter;
+
+        //Threading Variables
+        std::size_t m_thread_count;
         bool m_mult_threaded;
 
         //Timing Debug variables
