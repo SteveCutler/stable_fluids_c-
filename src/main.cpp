@@ -11,6 +11,7 @@ int main()
     //SET WIDTH AND HEIGHT
     unsigned int width = 512;
     unsigned int height = 512;
+    bool arrow_viz = false;
 
     // create a clock to track the elapsed time
     sf::Clock clock;
@@ -33,7 +34,7 @@ int main()
 
 
     //initialize render buffers
-    std::vector<std::uint8_t> pixels(width * height * 4, 0);
+    
     sf::VertexArray arrows(sf::PrimitiveType::Lines, width/16 * height/16 * 6);
 
     //Performance debug text
@@ -183,53 +184,39 @@ int main()
         const auto& density = Grid.density();
         const auto& u_velocity = Grid.u_velocity();
         const auto& v_velocity = Grid.v_velocity();
-
-        //Convert density buffer to pixel data
-        for (int i =0; i<density.size(); i++){
-
-            //clamp between 0 and 1
-            float d = std::clamp(density[i],0.0f, 1.0f);
-            
-
-            //convert density to RGB values
-            std::uint8_t value = static_cast<std::uint8_t>(d * 255.f);
-
-            //find correct position in pixel array, given each pixel has 1 components
-            std::size_t p = i * 4;
-
-            //create greyscale image with alpha of 1
-            pixels[p] = value;  //R
-            pixels[p+1] = value;//G
-            pixels[p+2] = value;//B
-            pixels[p+3] = 255;  //Alpha channel
-        }
         
-        std::size_t index = 0;
-        for (std::size_t y = 0; y<height; y+=16){
-            std::size_t row = y*width;
-
-            for(std::size_t x =0; x<width; x+=16){
-                std::size_t i = row+x;
-
-                //extract u and v velocity directions
-                float u = u_velocity[i];
-                float v = v_velocity[i];
+        //Creating arrow vector
+        if(arrow_viz){
+            std::size_t index=0;
+            for (std::size_t y = 0; y<height; y+=16){
+                std::size_t row = y*width;
+                
+                for(std::size_t x =0; x<width; x+=16){
+                    std::size_t i = row+x;
+                    
+                    //extract u and v velocity directions
+                    float u = u_velocity[i];
+                    float v = v_velocity[i];
+                    
+                    //create arrow points
+                    arrows[index].position = sf::Vector2f(static_cast<float>(x),static_cast<float>(y));
+                    arrows[index+1].position = sf::Vector2f(static_cast<float>(x+u),static_cast<float>(y+v));
+                    
+                    arrows[index+2].position = sf::Vector2f(static_cast<float>(x+u),static_cast<float>(y+v));
+                    arrows[index+3].position = sf::Vector2f(static_cast<float>(x+u - u*.25 + v*.25),static_cast<float>(y+v - v*.25-u*.25));
+                    
+                    arrows[index+4].position = sf::Vector2f(static_cast<float>(x+u),static_cast<float>(y+v));
+                    arrows[index+5].position = sf::Vector2f(static_cast<float>(x+u - u*.25 - v*.25),static_cast<float>(y+v - v*.25+u*.25));
+                    
+                    
+                    index += 6;
+                }
     
-                //create arrow points
-                arrows[index].position = sf::Vector2f(static_cast<float>(x),static_cast<float>(y));
-                arrows[index+1].position = sf::Vector2f(static_cast<float>(x+u),static_cast<float>(y+v));
-
-                arrows[index+2].position = sf::Vector2f(static_cast<float>(x+u),static_cast<float>(y+v));
-                arrows[index+3].position = sf::Vector2f(static_cast<float>(x+u - u*.25 + v*.25),static_cast<float>(y+v - v*.25-u*.25));
-
-                arrows[index+4].position = sf::Vector2f(static_cast<float>(x+u),static_cast<float>(y+v));
-                arrows[index+5].position = sf::Vector2f(static_cast<float>(x+u - u*.25 - v*.25),static_cast<float>(y+v - v*.25+u*.25));
-
-
-                index += 6;
             }
-
         }
+
+        
+        const auto& pixels = Grid.get_pixels();
 
         // Load pixel RGBA data into texture
         texture.update(pixels.data());
@@ -247,7 +234,9 @@ int main()
         window.draw(sprite);
 
         //render velocity arrows
-        //window.draw(arrows);
+        if(arrow_viz){
+            window.draw(arrows);
+        }
 
         //render debug text
         window.draw(fpsText);

@@ -11,6 +11,7 @@
 Grid::Grid(std::size_t width, std::size_t height):
 m_width(width),
 m_height(height),
+m_pixels(width * height * 4, 0),
 m_density(width*height, 0.0f),
 m_v_velocity(width*height, 0.0f),
 m_u_velocity(width*height, 0.0f),
@@ -40,6 +41,7 @@ m_addSource_ms(0.f),
 m_render_ms(0.f),
 m_thread_count(4),
 m_mult_threaded(true),
+m_buoyancy(30.f),
 m_curl_mult(1000)
 {
 
@@ -72,6 +74,10 @@ const std::vector<float>& Grid::v_velocity() const{
 
 const std::vector<float>& Grid::get_noise() const{
     return m_noise;
+};
+
+const std::vector<std::uint8_t> & Grid::get_pixels() const{
+    return m_pixels;
 };
 
 // timing getters
@@ -124,7 +130,7 @@ void Grid::update(float dt){
     
     //Create vel gradient field based on noise
     m_performance_clock.restart();
-    calcVel(dt);
+    calcVel_Threaded(dt);
     m_vel_ms = m_performance_clock.restart().asMicroseconds()/1000.f;
     
     // apply velocity boundary calculations
@@ -136,7 +142,7 @@ void Grid::update(float dt){
     //Advect velocity
     swapVel();
     m_performance_clock.restart();
-    advectVel(dt);
+    advectVel_Threaded(dt);
     m_advectVel_ms = m_performance_clock.restart().asMicroseconds()/1000.f;
 
     //apply velocity boundary conditions
@@ -145,14 +151,14 @@ void Grid::update(float dt){
     
     //Diffuse velocity
     // swapVel();
-    // diffuseVel(dt*.1);  
+    //diffuseVel_Threaded(dt*20);  
     velBoundaries();
 
     //second pressure solve
     m_performance_clock.restart();
     projectStep();
     m_project_ms = m_performance_clock.restart().asMicroseconds()/1000.f;
-    decayVel();  
+   // decayVel();  
 
     //Add density source
     m_performance_clock.restart();
@@ -162,14 +168,17 @@ void Grid::update(float dt){
     //Diffuse
     swapDensity();
     m_performance_clock.restart();
-    diffuse(dt*5);
+    diffuse_Threaded(dt*5);
     m_diffuse_ms = m_performance_clock.restart().asMicroseconds()/1000.f;
     
     //Advect
     swapDensity();
     m_performance_clock.restart();
-    advect_decay(dt);
+    advect_decay_Threaded(dt);
     m_advect_ms = m_performance_clock.restart().asMicroseconds()/1000.f;
+
+    //generate pixels
+    gen_pixels_Threaded();
     
 }
     
@@ -180,7 +189,7 @@ void Grid::update(float dt){
 void Grid::projectStep(){
     //clearPressure();
     m_performance_clock.restart();
-    calcDivergence();
+    calcDivergence_Threaded();
     m_div_ms = m_performance_clock.restart().asMicroseconds()/1000.f;
     
     
@@ -190,12 +199,69 @@ void Grid::projectStep(){
     m_mult_threaded ? solvePressureThreaded(m_thread_count) : solvePressure();
 
     m_pressure_ms = m_performance_clock.restart().asMicroseconds()/1000.f;
-    //pressureBoundaries();
+    pressureBoundaries();
     
     //m_performance_clock.restart();
-    project();
+    project_Threaded();
     velBoundaries();
 
+}
+
+void Grid::swapVel(){
+    std::swap(m_u_velocity, m_u_velocity_prev);
+    std::swap(m_v_velocity, m_v_velocity_prev);
+};
+
+void Grid::velBoundaries(){
+    //set vel on left and right boundaries
+    for(std::size_t y = 0; y<m_height; y++){
+        std::size_t b_l = y*m_width;
+        std::size_t b_r = (m_width-1)+y*m_width;
+
+        //horizontal vel 0
+        m_u_velocity[b_l] = 0.f;
+        m_u_velocity[b_r] = 0.f;
+        //vertical vel refers to neighbour
+        m_v_velocity[b_l] = m_v_velocity[b_l+1];
+        m_v_velocity[b_r] = m_v_velocity[b_r-1];
+    }
+
+    //set vel for top and bottom boundaries
+    for(std::size_t x = 0; x<m_width; x++){
+        std::size_t b_t = x;
+        std::size_t b_b = x+(m_height-1)*m_width;
+
+        //vertical vel refers to neighbour
+        m_u_velocity[b_t] = m_u_velocity[b_t+m_width];
+        m_u_velocity[b_b] = m_u_velocity[b_b-m_width];
+        //vertical vel 0
+        m_v_velocity[b_t] =0.f;
+        m_v_velocity[b_b] = 0.f;
+    }
+}
+
+void Grid::pressureBoundaries(){
+    //set pressure on left and right boundaries
+    for(std::size_t y = 0; y<m_height; y++){
+        std::size_t b_l = y*m_width;
+        std::size_t b_r = (m_width-1)+y*m_width;
+
+
+        //pressure refers to neighbour
+        m_pressure[b_l] = m_pressure[b_l+1];
+        m_pressure[b_r] = m_pressure[b_r-1];
+    }
+
+    //set pressure for top and bottom boundaries
+    for(std::size_t x = 0; x<m_width; x++){
+        std::size_t b_t = x;
+        std::size_t b_b = x+(m_height-1)*m_width;
+
+        //refers to vertical neighbour
+        m_pressure[b_t] = m_pressure[b_t+m_width];
+        m_pressure[b_b] = m_pressure[b_b-m_width];
+
+    }
 }
 
 void Grid::clearPressure(){
@@ -228,8 +294,18 @@ void Grid::calcNoiseRows(std::size_t begin, std::size_t end){
     }
 };
 
-void Grid::calcVel(float dt){
-    for(std::size_t y = 1; y<m_height-1; y++){
+void Grid::calcVel_Threaded(float dt){
+    Grid::parallelForRows(
+        1,
+        m_height-1,
+        [this, dt](std::size_t begin, std::size_t end){
+            calcVel_Rows(dt, begin, end);
+        }
+    );
+}
+
+void Grid::calcVel_Rows(float dt, std::size_t begin, std::size_t end){
+    for(std::size_t y = begin; y<end; y++){
         std::size_t row = y*m_width;
 
          for(std::size_t x = 1; x<m_width-1; x++){
@@ -294,12 +370,24 @@ void Grid::addSource(size_t x, size_t y, float size){
 
 //DYNAMIC VEL FUNCTIONS
 
-void Grid::advectVel(float dt){
+void Grid::advectVel_Threaded(float dt){
+    Grid::parallelForRows(
+        0,
+        m_height,
+        [this, dt](std::size_t begin, std::size_t end){
+            advectVel_Rows(dt, begin, end);
+        }
+    );
+    
+
+};
+
+void Grid::advectVel_Rows(float dt, std::size_t begin, std::size_t end){
     float new_u_vel = 0.f;
     float new_v_vel = 0.f;
 
     //switch to row first y x loop
-    for(std::size_t y = 0; y<m_height; y++){
+    for(std::size_t y = begin; y<end; y++){
         
         //reducing multiplication calculations by doing it once per row
         std::size_t row = y*m_width;
@@ -355,17 +443,63 @@ void Grid::advectVel(float dt){
         float br_weight = dx*dy;
 
         new_u_vel = tl_u*tl_weight + tr_u*tr_weight + bl_u*bl_weight + br_u*br_weight;
-        new_v_vel = tl_v*tl_weight + tr_v*tr_weight + bl_v*bl_weight + br_v*br_weight;
+        new_v_vel = tl_v*tl_weight + tr_v*tr_weight + bl_v*bl_weight + br_v*br_weight - m_buoyancy*dt;
         
-        m_u_velocity[i] = new_u_vel;
-        m_v_velocity[i] = new_v_vel;
+        m_u_velocity[i] = new_u_vel*m_vel_decay;
+        m_v_velocity[i] = new_v_vel*m_vel_decay;
 
         }
     }
+}
 
+void Grid::diffuseVel_Threaded(float dt){
+    Grid::parallelForRows(
+        1,
+        m_height-1,
+        [this, dt](std::size_t begin, std::size_t end){
+            diffuseVel_Rows(dt, begin, end);
+        }
+    );
+}
+
+void Grid::gen_pixels_Threaded(){
+    Grid::parallelForRows(
+        0,
+        m_height,
+        [this](std::size_t begin, std::size_t end){
+            gen_pixels_Rows(begin, end);
+        }
+    );
+}
+
+void Grid::gen_pixels_Rows(std::size_t begin, std::size_t end){
+            //Convert density buffer to pixel data
+        for (std::size_t y = begin; y<end; y++){
+            std::size_t row = y*m_width;
+
+            for( std::size_t x=0; x<m_width; x++){
+                std::size_t i = row+x;
+                
+                //clamp between 0 and 1
+                float d = std::clamp(m_density[i],0.0f, 1.0f);
+                
+                
+                //convert density to RGB values
+                std::uint8_t value = static_cast<std::uint8_t>(d * 255.f);
+                
+                //find correct position in pixel array, given each pixel has 1 components
+                std::size_t p = i * 4;
+                
+                //create greyscale image with alpha of 1
+                m_pixels[p] = value;  //R
+                m_pixels[p+1] = value;//G
+                m_pixels[p+2] = value;//B
+                m_pixels[p+3] = 255;  //Alpha channel
+            }        
+    }
 };
 
-void Grid::diffuseVel(float dt){
+void Grid::diffuseVel_Rows(float dt, std::size_t begin, std::size_t end){
 
     float left_u = 0.f;
     float right_u = 0.f;
@@ -385,7 +519,7 @@ void Grid::diffuseVel(float dt){
     float new_u_vel = 0.f;
     float new_v_vel = 0.f;
 
-    for(std::size_t y = 1; y<m_height-1; y++){
+    for(std::size_t y = begin; y<end; y++){
         //minimize mult operations
         std::size_t row = y*m_width;
 
@@ -432,75 +566,26 @@ void Grid::diffuseVel(float dt){
     }
 };
 
-void Grid::decayVel(){
-    for(std::size_t i=0; i<m_density.size(); i++){
-        m_u_velocity[i]*=m_vel_decay;
-        m_v_velocity[i]*=m_vel_decay;
-    }
-};
 
-void Grid::swapVel(){
-    std::swap(m_u_velocity, m_u_velocity_prev);
-    std::swap(m_v_velocity, m_v_velocity_prev);
-};
 
-void Grid::velBoundaries(){
-    //set vel on left and right boundaries
-    for(std::size_t y = 0; y<m_height; y++){
-        std::size_t b_l = y*m_width;
-        std::size_t b_r = (m_width-1)+y*m_width;
 
-        //horizontal vel 0
-        m_u_velocity[b_l] = 0.f;
-        m_u_velocity[b_r] = 0.f;
-        //vertical vel refers to neighbour
-        m_v_velocity[b_l] = m_v_velocity[b_l+1];
-        m_v_velocity[b_r] = m_v_velocity[b_r-1];
-    }
 
-    //set vel for top and bottom boundaries
-    for(std::size_t x = 0; x<m_width; x++){
-        std::size_t b_t = x;
-        std::size_t b_b = x+(m_height-1)*m_width;
 
-        //vertical vel refers to neighbour
-        m_u_velocity[b_t] = m_u_velocity[b_t+m_width];
-        m_u_velocity[b_b] = m_u_velocity[b_b-m_width];
-        //vertical vel 0
-        m_v_velocity[b_t] =0.f;
-        m_v_velocity[b_b] = 0.f;
-    }
+
+void Grid::calcDivergence_Threaded(){
+    Grid::parallelForRows(
+        1,
+        m_height-1,
+        [this](std::size_t begin, std::size_t end){
+            calcDivergence_Rows(begin, end);
+        }
+    );
 }
-
-void Grid::pressureBoundaries(){
-    //set pressure on left and right boundaries
-    for(std::size_t y = 0; y<m_height; y++){
-        std::size_t b_l = y*m_width;
-        std::size_t b_r = (m_width-1)+y*m_width;
-
-
-        //pressure refers to neighbour
-        m_pressure[b_l] = m_pressure[b_l+1];
-        m_pressure[b_r] = m_pressure[b_r-1];
-    }
-
-    //set pressure for top and bottom boundaries
-    for(std::size_t x = 0; x<m_width; x++){
-        std::size_t b_t = x;
-        std::size_t b_b = x+(m_height-1)*m_width;
-
-        //refers to vertical neighbour
-        m_pressure[b_t] = m_pressure[b_t+m_width];
-        m_pressure[b_b] = m_pressure[b_b-m_width];
-
-    }
-}
-
-void Grid::calcDivergence(){
+void Grid::calcDivergence_Rows(std::size_t begin, std::size_t end){
 
     float max_div = 0.f;
     
-    for(std::size_t y =1; y<m_height-1; y++){
+    for(std::size_t y =begin; y<end; y++){
         //calc row once per line
         std::size_t row = y*m_width;
 
@@ -526,9 +611,19 @@ void Grid::calcDivergence(){
     //    std::cout << "max divergence: " << max_div << "\n";
 };
 
-void Grid::project(){
+void Grid::project_Threaded(){
+    Grid::parallelForRows(
+        1,
+        m_height-1,
+        [this](std::size_t begin, std::size_t end){
+            project_Rows(begin, end);
+        }
+    );
+}
+
+void Grid::project_Rows(std::size_t begin, std::size_t end){
     
-    for(std::size_t y = 1; y<m_height-1; y++){
+    for(std::size_t y = begin; y<end; y++){
         std::size_t row = y*m_width;
         
         for(std::size_t x = 1; x<m_width-1; x++){
@@ -643,7 +738,16 @@ void Grid::solvePressureThreaded(std::size_t thread_count){
 
 };
 
-void Grid::diffuse(float dt){
+void Grid:: diffuse_Threaded(float dt){
+    Grid::parallelForRows(
+        1,
+        m_height-1,
+        [this, dt](std::size_t begin, std::size_t end){
+            diffuse_Rows(dt, begin, end);
+        }
+    );
+}
+void Grid::diffuse_Rows(float dt, std::size_t begin, std::size_t end){
 
     //5 points diffusion kernel
     //std::pair<std::size_t,std::size_t> xy = std::pair(0,0);
@@ -655,7 +759,7 @@ void Grid::diffuse(float dt){
     float lap = 0.f;
     float new_dens = 0.f;
 
-    for(std::size_t y = 1; y<m_height-1; y++){
+    for(std::size_t y = begin; y<end; y++){
 
         std::size_t row = y*m_width;
 
@@ -684,12 +788,24 @@ void Grid::diffuse(float dt){
         }
 }
 
-void Grid::advect_decay(float dt){
+void Grid::advect_decay_Threaded(float dt){
+    Grid::parallelForRows(
+        0,
+        m_height,
+        [this, dt](std::size_t begin, std::size_t end){
+            advect_decay_Rows(dt, begin, end);
+        }
+    );
+    //included decay here to minimize operations
+    
+}
+
+void Grid::advect_decay_Rows(float dt, std::size_t begin, std::size_t end){
 
 
     float new_dens = 0.f;
 
-    for(std::size_t y = 0; y<m_height; y++){
+    for(std::size_t y = begin; y<end; y++){
         std::size_t row = y*m_width;
         for(std::size_t x = 0; x<m_width; x++){
             std::size_t i =row+x;
@@ -726,8 +842,8 @@ void Grid::advect_decay(float dt){
 
             new_dens = tl*tl_weight + tr*tr_weight + bl*bl_weight + br*br_weight;
 
-            //included decay here to minimize operations
             m_density[i] = new_dens*m_decay;
+
         }
 
     }

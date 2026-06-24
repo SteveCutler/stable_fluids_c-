@@ -13,9 +13,10 @@ class Grid
 
     public:
         Grid(std::size_t width, std::size_t height);
+        std::vector<std::uint8_t> m_pixels;
         
         //multithreading by row template
-        template< typename Func>
+        template <typename Func>
             void parallelForRows(
                 std::size_t y_begin,
                 std::size_t y_end,
@@ -68,6 +69,7 @@ class Grid
         const std::vector<float>& u_velocity() const;
         const std::vector<float>& v_velocity() const;
         const std::vector<float>& get_noise() const;
+        const std::vector<std::uint8_t> & get_pixels() const;
 
         //timing getters
         sf::Clock m_performance_clock;
@@ -84,48 +86,62 @@ class Grid
 
     private:
         size_t calcPos(size_t x, size_t y);
+        
+        void advect_decay_Threaded(float dt);
+        void advect_decay_Rows(float dt, std::size_t begin, std::size_t end);
 
-        void advectVel(float dt);
+        void advectVel_Threaded(float dt);
+        void advectVel_Rows(float dt, std::size_t begin, std::size_t end);
 
-        void diffuseVel(float dt);
-
+        
         void decayVel();
-
+        
         void swapVel();
-
+        
         void clearPressure();
         
         void calcNoise(float dt);
         void calcNoiseRows(std::size_t begin, std::size_t end);
-
-        void calcVel(float dt);
-
-        void calcDivergence();
-
+        
+        void calcVel_Rows(float dt, std::size_t begin, std::size_t end);
+        void calcVel_Threaded(float dt);
+        
+        void calcDivergence_Threaded();
+        void calcDivergence_Rows(std::size_t begin, std::size_t end);
+        
         //single threaded pressure solve function
         void solvePressure();
-
+        
         //multi threaded implementation
         void solvePressureRows(std::size_t begin, std::size_t end);
         void solvePressureThreaded(std::size_t thread_count);
-
+        
         void velBoundaries();
-
+        
         void pressureBoundaries();
-
-        void project();
-
+        
+        void project_Threaded();
+        void project_Rows(std::size_t begin, std::size_t end);
+        
         void projectStep();
         
         void addSource(size_t x, size_t y, float size);
-
-        void spawn(std::size_t width, std::size_t height);
         
         void swapDensity();
-
-        void diffuse(float dt);
         
-        void advect_decay(float dt);
+        void diffuse_Rows(float dt, std::size_t begin, std::size_t end);
+        void diffuse_Threaded(float dt);
+
+        void diffuseVel_Threaded(float dt);
+        void diffuseVel_Rows(float dt, std::size_t begin, std::size_t end);
+
+        void buoyancy(float dt);
+
+        void densityToPixels();
+
+        void gen_pixels_Threaded();
+        void gen_pixels_Rows(std::size_t begin, std::size_t end);
+        
 
         FastNoiseLite m_noise_gen;
 
@@ -138,6 +154,7 @@ class Grid
         //Global variables
         int m_width;
         int m_height;
+        
         float m_diff_co;
         float m_decay;
         float m_vel_decay;
@@ -146,6 +163,7 @@ class Grid
         float m_curl_mult;
         float m_viscosity;
         std::size_t m_pressure_iter;
+        float m_buoyancy;
 
         //Threading Variables
         std::size_t m_thread_count;
