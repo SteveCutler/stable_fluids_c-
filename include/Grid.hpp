@@ -15,6 +15,11 @@ class Grid
         Grid(std::size_t width, std::size_t height);
         std::vector<std::uint8_t> m_pixels;
         float m_buoyancy;
+        float m_diff_co;
+        float m_viscosity;
+        float m_decay;
+        float m_curl_mult;
+        float m_noise_freq;
         
         //multithreading by row template
         template <typename Func>
@@ -157,15 +162,12 @@ class Grid
         int m_width;
         int m_height;
         
-        float m_diff_co;
-        float m_decay;
         float m_vel_decay;
         float m_source;
         float m_elapsed;
-        float m_curl_mult;
-        float m_viscosity;
         std::size_t m_pressure_iter;
         
+
 
         //Threading Variables
         std::size_t m_thread_count;

@@ -5,9 +5,13 @@
 //#include "../include/Renderer.hpp"
 #include "../include/Grid.hpp"
 
+sf::Font font;
+bool loaded = font.openFromFile("/Users/stevecutler/Library/Fonts/digital-7 (italic).ttf");
+
 struct Slider{
     sf::RectangleShape track;
     sf::CircleShape knob;
+    sf::Text slider_title;
 
     float* target;
     float min_value;
@@ -15,11 +19,20 @@ struct Slider{
     bool dragging =false;
 
 
-    Slider(sf::Vector2f position, float min_value, float max_value, float* target){
+
+    Slider(std::string title, sf::Vector2f position, float min_value, float max_value, float* target):
+    slider_title(font){
         this->target=target;
         this->min_value=min_value;
         this->max_value=max_value;
 
+
+        
+        slider_title.setCharacterSize(12);
+        slider_title.setFillColor(sf::Color::White);
+        slider_title.setPosition({position.x, position.y-17.5f});
+        slider_title.setString(title);
+        
 
         track.setFillColor({100, 100, 100});
         track.setPosition(position);
@@ -39,8 +52,8 @@ struct Slider{
     void updateFromMouse(sf::Vector2f pos){
         float percentage = (pos.x-track.getPosition().x)/track.getSize().x; 
         float amount = min_value + (max_value-min_value)*percentage;
-        *target = amount;
-        float knobPos = track.getPosition().x + track.getSize().x*percentage;
+        *target = std::clamp(amount,min_value, max_value);
+        float knobPos = std::clamp((track.getPosition().x + track.getSize().x*percentage), track.getPosition().x,(track.getPosition().x+track.getSize().x));
 
         knob.setPosition({
             knobPos,
@@ -64,9 +77,12 @@ struct Slider{
     void draw(sf::RenderWindow& window){
         window.draw(track);
         window.draw(knob);
+        window.draw(slider_title);
     }
 
 };
+
+
 
 int main()
 {
@@ -77,11 +93,15 @@ int main()
     //velocity arrow visualization
     bool arrow_viz = false;
 
+    //slider placement from right boundary
+    float slider_right = 130.f;
+    float slider_gap = 30.f;
+    
     //OBJECT CREATION
     Grid Grid{width, height};
     //Renderer Renderer(width, height);
-
-
+    
+    
     // create a clock to track the elapsed time
     sf::Clock clock;
     sf::Clock renderClock;
@@ -89,27 +109,50 @@ int main()
     sf::RenderWindow window(sf::VideoMode({width, height}), "Wind Sim");
     // create Grid
     //Render logic initialization
-
+    
     sf::Texture texture(sf::Vector2u(width, height));
     
     sf::Vector2f scale = sf::Vector2f(1.0f, 1.0f);
-
+    
     sf::Sprite sprite(texture);
     sprite.setScale(scale);
+    
+    
+    //grabbing slider controlled variable references
+    float* buoyancy = &Grid.m_buoyancy;
+    float* diffusion = &Grid.m_diff_co;
+    float* viscosity = &Grid.m_viscosity;
+    float* decay = &Grid.m_decay;
+    float* curl_mult = &Grid.m_curl_mult;
+    float* noise_freq = &Grid.m_noise_freq;
 
-    float* b = &Grid.m_buoyancy;
 
     //Sliders
-    Slider buoyancy_slider({width-150.f, 20.f},0.f, 500.f, b);
+    Slider buoyancy_slider("Buoyancy", {width-slider_right, 20.f},0.f, 500.f, buoyancy);
+    Slider diffusion_slider("Diffusion", {width-slider_right, 50.f},0.f,1.75f, diffusion);
+    Slider viscosity_slider("Viscosity", {width-slider_right, 80.f},0.f, 10.f, viscosity);
+    Slider decay_slider("Decay", {width-slider_right, 110.f},0.8f, 1.f, decay);
+    Slider curl_mult_slider("Noise Strength", {width-slider_right, 140.f},0.f, 2000.f, curl_mult);
+    Slider noise_freq_slider("Noise Freq.", {width-slider_right, 170.f},0.01f, .1f, noise_freq);
+    
+    //Sliders vector
+    std::vector<Slider*> Sliders{
+        &buoyancy_slider,
+        &diffusion_slider,
+        &viscosity_slider,
+        &decay_slider,
+        &curl_mult_slider,
+        &noise_freq_slider
 
+    };
+
+    Slider* active_slider = nullptr;
 
     //initialize render buffers
     
     sf::VertexArray arrows(sf::PrimitiveType::Lines, width/16 * height/16 * 6);
 
     //Performance debug text
-    sf::Font font;
-    bool loaded = font.openFromFile("/Users/stevecutler/Library/Fonts/digital-7 (italic).ttf");
 
     sf::Text fpsText(font);
     fpsText.setCharacterSize(12);
@@ -197,15 +240,29 @@ int main()
                 sf::Vector2i mousePixel = sf::Mouse::getPosition(window);
                 sf::Vector2f mousePos = window.mapPixelToCoords(mousePixel);
 
-                if(buoyancy_slider.contains(mousePos)){
-                    buoyancy_slider.dragging = true;
-                    buoyancy_slider.updateFromMouse(mousePos);
-
-                };
+                for(auto& slider : Sliders){
+                    if(slider->contains(mousePos)){
+                        active_slider = slider;
+                        break;
+                    }
+                
+                }
             }
-           
-            }
 
+            if (event->getIf<sf::Event::MouseButtonReleased>()) {
+                if (active_slider) {
+                    active_slider->dragging = false;
+                    active_slider = nullptr;
+                }
+            }
+            
+        }
+        
+        if(active_slider){
+            active_slider->dragging = true;
+            active_slider->updateFromMouse(window.mapPixelToCoords(sf::Mouse::getPosition(window)));
+        }
+        
         // calc elapsed time
         float elapsed = clock.restart().asSeconds();
         
@@ -348,7 +405,10 @@ int main()
         window.draw(render);
 
         //slider drawing
-        buoyancy_slider.draw(window);
+        for( auto& slider : Sliders){
+            slider->draw(window);
+        }
+
 
         // display
         window.display();

@@ -42,6 +42,7 @@ m_render_ms(0.f),
 m_thread_count(4),
 m_mult_threaded(true),
 m_buoyancy(100.f),
+m_noise_freq(0.04f),
 m_curl_mult(1000)
 {
 
@@ -53,7 +54,7 @@ m_curl_mult(1000)
     //configure noise generator
     m_noise_gen.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
     m_noise_gen.SetSeed(distr(gen));
-    m_noise_gen.SetFrequency(0.04f);
+    
 
     //std::cout<<"Max Thread count: " << std::thread::hardware_concurrency();
 
@@ -151,7 +152,7 @@ void Grid::update(float dt){
     
     //Diffuse velocity
     // swapVel();
-    //diffuseVel_Threaded(dt*20);  
+    //diffuseVel_Threaded(dt);  
     velBoundaries();
 
     //second pressure solve
@@ -162,7 +163,7 @@ void Grid::update(float dt){
 
     //Add density source
     m_performance_clock.restart();
-    addSource(m_width/2,m_height/2, m_source);
+    addSource(m_width/2,m_height*.8, m_source);
     m_addSource_ms = m_performance_clock.restart().asMicroseconds()/1000.f;
     
     //Diffuse
@@ -288,6 +289,7 @@ void Grid::clearPressure(){
 
 void Grid::calcNoise(float dt){
     m_elapsed += dt;
+    m_noise_gen.SetFrequency(m_noise_freq);
 
     parallelForRows(0, m_height,
         [this](std::size_t begin, std::size_t end){
