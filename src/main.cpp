@@ -2,27 +2,92 @@
 #include <SFML/Window.hpp>
 #include <SFML/Graphics.hpp>
 #include <vector>
+//#include "../include/Renderer.hpp"
 #include "../include/Grid.hpp"
 
+struct Slider{
+    sf::RectangleShape track;
+    sf::CircleShape knob;
+
+    float* target;
+    float min_value;
+    float max_value;
+    bool dragging =false;
+
+
+    Slider(sf::Vector2f position, float min_value, float max_value, float* target){
+        this->target=target;
+        this->min_value=min_value;
+        this->max_value=max_value;
+
+
+        track.setFillColor({100, 100, 100});
+        track.setPosition(position);
+        track.setSize(sf::Vector2f(120.f,5.f));
+        
+        float amount =std::clamp(((*target - min_value)/max_value),0.f,1.f);
+        
+        float knob_pos_x = track.getPosition().x + track.getSize().x*amount;
+        float knob_pos_y = track.getPosition().y - track.getSize().y/2.f;
+
+        knob.setPosition({knob_pos_x,knob_pos_y});
+        knob.setFillColor(sf::Color::Red);
+        knob.setScale({4.f,4.f});
+        knob.setRadius(1.f);
+    }
+
+    void updateFromMouse(sf::Vector2f pos){
+        float percentage = (pos.x-track.getPosition().x)/track.getSize().x; 
+        float amount = min_value + (max_value-min_value)*percentage;
+        *target = amount;
+        float knobPos = track.getPosition().x + track.getSize().x*percentage;
+
+        knob.setPosition({
+            knobPos,
+            knob.getPosition().y
+        }
+        );
+
+    
+    }
+
+    bool contains(sf::Vector2f pos){
+        
+        if(track.getGlobalBounds().contains(pos) or knob.getGlobalBounds().contains(pos)){
+            return true;
+
+        }
+        return false;
+    }
+
+    //draw function
+    void draw(sf::RenderWindow& window){
+        window.draw(track);
+        window.draw(knob);
+    }
+
+};
 
 int main()
 {
    
     //SET WIDTH AND HEIGHT
     unsigned int width = 512;
-    unsigned int height = 512;
+    unsigned int height = 512;    
+    //velocity arrow visualization
     bool arrow_viz = false;
+
+    //OBJECT CREATION
+    Grid Grid{width, height};
+    //Renderer Renderer(width, height);
+
 
     // create a clock to track the elapsed time
     sf::Clock clock;
     sf::Clock renderClock;
-
     // create the window
     sf::RenderWindow window(sf::VideoMode({width, height}), "Wind Sim");
-
     // create Grid
-    Grid Grid{width, height};
-
     //Render logic initialization
 
     sf::Texture texture(sf::Vector2u(width, height));
@@ -31,6 +96,11 @@ int main()
 
     sf::Sprite sprite(texture);
     sprite.setScale(scale);
+
+    float* b = &Grid.m_buoyancy;
+
+    //Sliders
+    Slider buoyancy_slider({width-150.f, 20.f},0.f, 500.f, b);
 
 
     //initialize render buffers
@@ -106,12 +176,35 @@ int main()
     // run the main loop
     while (window.isOpen())
     {
+
         // handle events
         while (const std::optional event = window.pollEvent())
         {
             if (event->is<sf::Event::Closed>())
                 window.close();
-        }
+
+            if (const auto* key = event->getIf<sf::Event::KeyPressed>()) {
+                if (key->code == sf::Keyboard::Key::V) {
+                    arrow_viz = !arrow_viz;
+                    }
+                }
+            if (const auto* key = event->getIf<sf::Event::KeyPressed>()) {
+                if (key->code == sf::Keyboard::Key::R) {
+                    Grid.reset_density();
+                    }
+                }
+            if(event->getIf<sf::Event::MouseButtonPressed>()){
+                sf::Vector2i mousePixel = sf::Mouse::getPosition(window);
+                sf::Vector2f mousePos = window.mapPixelToCoords(mousePixel);
+
+                if(buoyancy_slider.contains(mousePos)){
+                    buoyancy_slider.dragging = true;
+                    buoyancy_slider.updateFromMouse(mousePos);
+
+                };
+            }
+           
+            }
 
         // calc elapsed time
         float elapsed = clock.restart().asSeconds();
@@ -253,6 +346,9 @@ int main()
         window.draw(advectVel);
         window.draw(project);
         window.draw(render);
+
+        //slider drawing
+        buoyancy_slider.draw(window);
 
         // display
         window.display();

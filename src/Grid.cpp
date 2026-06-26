@@ -31,7 +31,7 @@ m_pressure_ms(0.f),
 m_advect_ms(0.f),
 m_diffuse_ms(0.f),
 m_diff_co(1.f),
-m_decay(0.999f),
+m_decay(0.96f),
 m_vel_decay(0.9f),
 m_viscosity(0.01f),
 m_pressure_iter(20),
@@ -41,7 +41,7 @@ m_addSource_ms(0.f),
 m_render_ms(0.f),
 m_thread_count(4),
 m_mult_threaded(true),
-m_buoyancy(30.f),
+m_buoyancy(100.f),
 m_curl_mult(1000)
 {
 
@@ -124,7 +124,7 @@ float Grid::time_addSource() const{
 void Grid::update(float dt){
     //Create noise scalar field
     m_performance_clock.restart();
-    calcNoise(dt*20);
+    calcNoise(dt*10);
     m_noise_ms = m_performance_clock.restart().asMicroseconds()/1000.f;
     
     
@@ -186,6 +186,22 @@ void Grid::update(float dt){
 
 //HELPERS
 
+
+
+void Grid::reset_density(){
+    std::fill(m_density.begin(), m_density.end(), 0.0f);
+    std::fill(m_density_prev.begin(), m_density_prev.end(), 0.0f);
+
+    std::fill(m_u_velocity.begin(), m_u_velocity.end(), 0.0f);
+    std::fill(m_v_velocity.begin(), m_v_velocity.end(), 0.0f);
+    std::fill(m_u_velocity_prev.begin(), m_u_velocity_prev.end(), 0.0f);
+    std::fill(m_v_velocity_prev.begin(), m_v_velocity_prev.end(), 0.0f);
+
+    std::fill(m_pressure.begin(), m_pressure.end(), 0.0f);
+    std::fill(m_pressure_prev.begin(), m_pressure_prev.end(), 0.0f);
+    std::fill(m_divergence.begin(), m_divergence.end(), 0.0f);
+
+};
 void Grid::projectStep(){
     //clearPressure();
     m_performance_clock.restart();

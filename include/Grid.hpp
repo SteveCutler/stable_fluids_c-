@@ -14,6 +14,7 @@ class Grid
     public:
         Grid(std::size_t width, std::size_t height);
         std::vector<std::uint8_t> m_pixels;
+        float m_buoyancy;
         
         //multithreading by row template
         template <typename Func>
@@ -61,6 +62,8 @@ class Grid
                 }
 
         void update(float dt);
+        
+        void reset_density();
 
         std::pair<std::size_t,std::size_t> get_xy(std::size_t i);
 
@@ -94,7 +97,6 @@ class Grid
         void advectVel_Rows(float dt, std::size_t begin, std::size_t end);
 
         
-        void decayVel();
         
         void swapVel();
         
@@ -163,7 +165,7 @@ class Grid
         float m_curl_mult;
         float m_viscosity;
         std::size_t m_pressure_iter;
-        float m_buoyancy;
+        
 
         //Threading Variables
         std::size_t m_thread_count;
