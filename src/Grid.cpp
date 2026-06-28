@@ -54,9 +54,6 @@ m_curl_mult(1000)
     //configure noise generator
     m_noise_gen.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
     m_noise_gen.SetSeed(distr(gen));
-    
-
-    //std::cout<<"Max Thread count: " << std::thread::hardware_concurrency();
 
 }
 
@@ -123,36 +120,36 @@ float Grid::time_addSource() const{
 //UPDATE LOOP
 
 void Grid::update(float dt){
+
+    m_elapsed += dt;
+
     //Create noise scalar field
     m_performance_clock.restart();
-    calcNoise(dt*10);
+    m_mult_threaded ? calcNoise_Threaded(dt) : calcNoiseRows(dt, 0, m_height);
+
     m_noise_ms = m_performance_clock.restart().asMicroseconds()/1000.f;
     
     
     //Create vel gradient field based on noise
     m_performance_clock.restart();
-    calcVel_Threaded(dt);
+    m_mult_threaded ? calcVel_Threaded(dt) : calcVel_Rows(dt, 0, m_height);
+
     m_vel_ms = m_performance_clock.restart().asMicroseconds()/1000.f;
     
     // apply velocity boundary calculations
     velBoundaries();
 
-    //first pressure solve
-   // projectStep();
-
     //Advect velocity
     swapVel();
     m_performance_clock.restart();
-    advectVel_Threaded(dt);
+    m_mult_threaded ? advectVel_Threaded(dt) : advectVel_Rows(dt, 1,m_height-1);
     m_advectVel_ms = m_performance_clock.restart().asMicroseconds()/1000.f;
 
-    //apply velocity boundary conditions
-    //velBoundaries();
     
     
     //Diffuse velocity
-    // swapVel();
-    //diffuseVel_Threaded(dt);  
+    swapVel();
+    m_mult_threaded ? diffuseVel_Threaded(dt) : diffuseVel_Rows(dt,0,m_height-1);  
     velBoundaries();
 
     //second pressure solve
@@ -169,13 +166,13 @@ void Grid::update(float dt){
     //Diffuse
     swapDensity();
     m_performance_clock.restart();
-    diffuse_Threaded(dt*5);
+    m_mult_threaded ? diffuse_Threaded(dt*5) : diffuse_Rows(dt*5,1,m_height-1);
     m_diffuse_ms = m_performance_clock.restart().asMicroseconds()/1000.f;
     
     //Advect
     swapDensity();
     m_performance_clock.restart();
-    advect_decay_Threaded(dt);
+    m_mult_threaded ? advect_decay_Threaded(dt) : advect_decay_Rows(dt, 0,m_height-1);
     m_advect_ms = m_performance_clock.restart().asMicroseconds()/1000.f;
 
     //generate pixels
@@ -287,25 +284,26 @@ void Grid::clearPressure(){
 };
 
 
-void Grid::calcNoise(float dt){
-    m_elapsed += dt;
+void Grid::calcNoise_Threaded(float dt){
+   // m_elapsed += dt;
     m_noise_gen.SetFrequency(m_noise_freq);
 
     parallelForRows(0, m_height,
-        [this](std::size_t begin, std::size_t end){
-            calcNoiseRows(begin, end);
+        [this, dt](std::size_t begin, std::size_t end){
+            calcNoiseRows(dt, begin, end);
         });
 
 };
 
-void Grid::calcNoiseRows(std::size_t begin, std::size_t end){
+void Grid::calcNoiseRows(float dt, std::size_t begin, std::size_t end){
+    m_elapsed +=dt*10;
 
     std::size_t index = begin*m_width;
 
     for(std::size_t y = begin; y<end; y++){
          for(std::size_t x = 0; x<m_width; x++){
             
-            float n = m_noise_gen.GetNoise(x*1.f,y*1.f,m_elapsed);
+            float n = m_noise_gen.GetNoise(x*1.f,y*1.f, m_elapsed);
             m_noise[index] = n;
             index++;
         }

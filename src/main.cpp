@@ -25,15 +25,12 @@ struct Slider{
         this->target=target;
         this->min_value=min_value;
         this->max_value=max_value;
-
-
         
         slider_title.setCharacterSize(12);
         slider_title.setFillColor(sf::Color::White);
         slider_title.setPosition({position.x, position.y-17.5f});
         slider_title.setString(title);
         
-
         track.setFillColor({100, 100, 100});
         track.setPosition(position);
         track.setSize(sf::Vector2f(120.f,5.f));
@@ -55,13 +52,11 @@ struct Slider{
         *target = std::clamp(amount,min_value, max_value);
         float knobPos = std::clamp((track.getPosition().x + track.getSize().x*percentage), track.getPosition().x,(track.getPosition().x+track.getSize().x));
 
-        knob.setPosition({
-            knobPos,
-            knob.getPosition().y
-        }
+            knob.setPosition({
+                knobPos,
+                knob.getPosition().y
+            }
         );
-
-    
     }
 
     bool contains(sf::Vector2f pos){
@@ -86,6 +81,7 @@ struct Slider{
 
 int main()
 {
+    bool paused = false;
    
     //SET WIDTH AND HEIGHT
     unsigned int width = 512;
@@ -231,11 +227,25 @@ int main()
                     arrow_viz = !arrow_viz;
                     }
                 }
+
+            if (const auto* key = event->getIf<sf::Event::KeyPressed>()) {
+                if (key->code == sf::Keyboard::Key::P) {
+                    paused = !paused;
+                    }
+                }
+
             if (const auto* key = event->getIf<sf::Event::KeyPressed>()) {
                 if (key->code == sf::Keyboard::Key::R) {
                     Grid.reset_density();
                     }
                 }
+
+            if (const auto* key = event->getIf<sf::Event::KeyPressed>()) {
+                if (key->code == sf::Keyboard::Key::M) {
+                    Grid.m_mult_threaded = !Grid.m_mult_threaded;
+                    }
+                }
+
             if(event->getIf<sf::Event::MouseButtonPressed>()){
                 sf::Vector2i mousePixel = sf::Mouse::getPosition(window);
                 sf::Vector2f mousePos = window.mapPixelToCoords(mousePixel);
@@ -324,8 +334,9 @@ int main()
 
 
         // update
-        Grid.update(dt);
-
+        if(!paused){
+            Grid.update(dt);
+        }
 
         // DRAW BLOCK
 

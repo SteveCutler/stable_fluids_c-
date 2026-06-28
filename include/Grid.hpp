@@ -20,6 +20,7 @@ class Grid
         float m_decay;
         float m_curl_mult;
         float m_noise_freq;
+        bool m_mult_threaded;
         
         //multithreading by row template
         template <typename Func>
@@ -107,8 +108,8 @@ class Grid
         
         void clearPressure();
         
-        void calcNoise(float dt);
-        void calcNoiseRows(std::size_t begin, std::size_t end);
+        void calcNoise_Threaded(float dt);
+        void calcNoiseRows(float dt, std::size_t begin, std::size_t end);
         
         void calcVel_Rows(float dt, std::size_t begin, std::size_t end);
         void calcVel_Threaded(float dt);
@@ -171,7 +172,7 @@ class Grid
 
         //Threading Variables
         std::size_t m_thread_count;
-        bool m_mult_threaded;
+        
 
         //Timing Debug variables
         float m_noise_ms;
