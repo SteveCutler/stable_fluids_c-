@@ -4,83 +4,16 @@
 #include <vector>
 //#include "../include/Renderer.hpp"
 #include "../include/Grid.hpp"
+#include "../include/Slider.hpp"
 
-sf::Font font;
-bool loaded = font.openFromFile("/Users/stevecutler/Library/Fonts/digital-7 (italic).ttf");
-
-struct Slider{
-    sf::RectangleShape track;
-    sf::CircleShape knob;
-    sf::Text slider_title;
-
-    float* target;
-    float min_value;
-    float max_value;
-    bool dragging =false;
-
-
-
-    Slider(std::string title, sf::Vector2f position, float min_value, float max_value, float* target):
-    slider_title(font){
-        this->target=target;
-        this->min_value=min_value;
-        this->max_value=max_value;
-        
-        slider_title.setCharacterSize(12);
-        slider_title.setFillColor(sf::Color::White);
-        slider_title.setPosition({position.x, position.y-17.5f});
-        slider_title.setString(title);
-        
-        track.setFillColor({100, 100, 100});
-        track.setPosition(position);
-        track.setSize(sf::Vector2f(120.f,5.f));
-        
-        float amount =std::clamp(((*target - min_value)/max_value),0.f,1.f);
-        
-        float knob_pos_x = track.getPosition().x + track.getSize().x*amount;
-        float knob_pos_y = track.getPosition().y - track.getSize().y/2.f;
-
-        knob.setPosition({knob_pos_x,knob_pos_y});
-        knob.setFillColor(sf::Color::Red);
-        knob.setScale({4.f,4.f});
-        knob.setRadius(1.f);
-    }
-
-    void updateFromMouse(sf::Vector2f pos){
-        float percentage = (pos.x-track.getPosition().x)/track.getSize().x; 
-        float amount = min_value + (max_value-min_value)*percentage;
-        *target = std::clamp(amount,min_value, max_value);
-        float knobPos = std::clamp((track.getPosition().x + track.getSize().x*percentage), track.getPosition().x,(track.getPosition().x+track.getSize().x));
-
-            knob.setPosition({
-                knobPos,
-                knob.getPosition().y
-            }
-        );
-    }
-
-    bool contains(sf::Vector2f pos){
-        
-        if(track.getGlobalBounds().contains(pos) or knob.getGlobalBounds().contains(pos)){
-            return true;
-
-        }
-        return false;
-    }
-
-    //draw function
-    void draw(sf::RenderWindow& window){
-        window.draw(track);
-        window.draw(knob);
-        window.draw(slider_title);
-    }
-
-};
 
 
 
 int main()
 {
+    sf::Font font;
+    bool loaded = font.openFromFile("/Users/stevecutler/Library/Fonts/digital-7 (italic).ttf");
+    
     bool paused = false;
    
     //SET WIDTH AND HEIGHT
@@ -89,13 +22,13 @@ int main()
     //velocity arrow visualization
     bool arrow_viz = false;
 
+    //OBJECT CREATION
+    Grid grid{width, height};
+    //Renderer Renderer(width, height);
+    
     //slider placement from right boundary
     float slider_right = 130.f;
     float slider_gap = 30.f;
-    
-    //OBJECT CREATION
-    Grid Grid{width, height};
-    //Renderer Renderer(width, height);
     
     
     // create a clock to track the elapsed time
@@ -115,27 +48,24 @@ int main()
     
     
     //grabbing slider controlled variable references
-    float* buoyancy = &Grid.m_buoyancy;
-    float* diffusion = &Grid.m_diff_co;
-    float* viscosity = &Grid.m_viscosity;
-    float* decay = &Grid.m_decay;
-    float* curl_mult = &Grid.m_curl_mult;
-    float* noise_freq = &Grid.m_noise_freq;
+    float* buoyancy = &grid.m_buoyancy;
+    float* diffusion = &grid.m_diff_co;
+    float* decay = &grid.m_decay;
+    float* curl_mult = &grid.m_curl_mult;
+    float* noise_freq = &grid.m_noise_freq;
 
 
     //Sliders
     Slider buoyancy_slider("Buoyancy", {width-slider_right, 20.f},0.f, 500.f, buoyancy);
     Slider diffusion_slider("Diffusion", {width-slider_right, 50.f},0.f,1.75f, diffusion);
-    Slider viscosity_slider("Viscosity", {width-slider_right, 80.f},0.f, 10.f, viscosity);
-    Slider decay_slider("Decay", {width-slider_right, 110.f},0.8f, 1.f, decay);
-    Slider curl_mult_slider("Noise Strength", {width-slider_right, 140.f},0.f, 2000.f, curl_mult);
-    Slider noise_freq_slider("Noise Freq.", {width-slider_right, 170.f},0.01f, .1f, noise_freq);
+    Slider decay_slider("Decay", {width-slider_right, 80.f},0.8f, 1.f, decay);
+    Slider curl_mult_slider("Noise Strength", {width-slider_right, 110.f},0.f, 2000.f, curl_mult);
+    Slider noise_freq_slider("Noise Freq.", {width-slider_right, 140.f},0.01f, .07f, noise_freq);
     
     //Sliders vector
     std::vector<Slider*> Sliders{
         &buoyancy_slider,
         &diffusion_slider,
-        &viscosity_slider,
         &decay_slider,
         &curl_mult_slider,
         &noise_freq_slider
@@ -144,8 +74,8 @@ int main()
 
     Slider* active_slider = nullptr;
 
-    //initialize render buffers
-    
+    //initialize Arrow render buffer
+
     sf::VertexArray arrows(sf::PrimitiveType::Lines, width/16 * height/16 * 6);
 
     //Performance debug text
@@ -236,13 +166,13 @@ int main()
 
             if (const auto* key = event->getIf<sf::Event::KeyPressed>()) {
                 if (key->code == sf::Keyboard::Key::R) {
-                    Grid.reset_density();
+                    grid.reset_density();
                     }
                 }
 
             if (const auto* key = event->getIf<sf::Event::KeyPressed>()) {
                 if (key->code == sf::Keyboard::Key::M) {
-                    Grid.m_mult_threaded = !Grid.m_mult_threaded;
+                    grid.m_mult_threaded = !grid.m_mult_threaded;
                     }
                 }
 
@@ -294,39 +224,39 @@ int main()
         );
 
         noise.setString(
-            "\nNoise ms: " + std::to_string(Grid.time_noise())
+            "\nNoise ms: " + std::to_string(grid.time_noise())
         );
 
         vel.setString(
-            "\nVel ms: " + std::to_string(Grid.time_vel())
+            "\nVel ms: " + std::to_string(grid.time_vel())
         );
 
         divergence.setString(
-            "\nDivergence ms: " + std::to_string(Grid.time_divergence())
+            "\nDivergence ms: " + std::to_string(grid.time_divergence())
         );
 
         pressure.setString(
-            "\nPressure ms: " + std::to_string(Grid.time_pressure())
+            "\nPressure ms: " + std::to_string(grid.time_pressure())
         );
 
         diffuse.setString(
-            "\nDiffuse ms: " + std::to_string(Grid.time_diffuse())
+            "\nDiffuse ms: " + std::to_string(grid.time_diffuse())
         );
 
         advect.setString(
-            "\nAdvect ms: " + std::to_string(Grid.time_advect())
+            "\nAdvect ms: " + std::to_string(grid.time_advect())
         );
 
         advectVel.setString(
-            "\nAdv Vel ms: " + std::to_string(Grid.time_advectVel())
+            "\nAdv Vel ms: " + std::to_string(grid.time_advectVel())
         );
 
         project.setString(
-            "\nProject ms: " + std::to_string(Grid.time_project())
+            "\nProject ms: " + std::to_string(grid.time_project())
         );
 
         addSource.setString(
-            "\nAdd Source ms: " + std::to_string(Grid.time_addSource())
+            "\nAdd Source ms: " + std::to_string(grid.time_addSource())
         );
 
 
@@ -335,16 +265,16 @@ int main()
 
         // update
         if(!paused){
-            Grid.update(dt);
+            grid.update(dt);
         }
 
         // DRAW BLOCK
 
         renderClock.restart();
 
-        const auto& density = Grid.density();
-        const auto& u_velocity = Grid.u_velocity();
-        const auto& v_velocity = Grid.v_velocity();
+        const auto& density = grid.density();
+        const auto& u_velocity = grid.u_velocity();
+        const auto& v_velocity = grid.v_velocity();
         
         //Creating arrow vector
         if(arrow_viz){
@@ -377,7 +307,7 @@ int main()
         }
 
         
-        const auto& pixels = Grid.get_pixels();
+        const auto& pixels = grid.get_pixels();
 
         // Load pixel RGBA data into texture
         texture.update(pixels.data());

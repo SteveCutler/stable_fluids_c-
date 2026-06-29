@@ -129,6 +129,30 @@ StableFluidsC++/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/StableFluidsC++.dir/build.make CMakeFiles/StableFluidsC++.dir/build
 .PHONY : StableFluidsC++/fast
 
+src/Slider.o: src/Slider.cpp.o
+.PHONY : src/Slider.o
+
+# target to build an object file
+src/Slider.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/StableFluidsC++.dir/build.make CMakeFiles/StableFluidsC++.dir/src/Slider.cpp.o
+.PHONY : src/Slider.cpp.o
+
+src/Slider.i: src/Slider.cpp.i
+.PHONY : src/Slider.i
+
+# target to preprocess a source file
+src/Slider.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/StableFluidsC++.dir/build.make CMakeFiles/StableFluidsC++.dir/src/Slider.cpp.i
+.PHONY : src/Slider.cpp.i
+
+src/Slider.s: src/Slider.cpp.s
+.PHONY : src/Slider.s
+
+# target to generate assembly for a file
+src/Slider.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/StableFluidsC++.dir/build.make CMakeFiles/StableFluidsC++.dir/src/Slider.cpp.s
+.PHONY : src/Slider.cpp.s
+
 src/grid.o: src/grid.cpp.o
 .PHONY : src/grid.o
 
@@ -186,6 +210,9 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... StableFluidsC++"
+	@echo "... src/Slider.o"
+	@echo "... src/Slider.i"
+	@echo "... src/Slider.s"
 	@echo "... src/grid.o"
 	@echo "... src/grid.i"
 	@echo "... src/grid.s"

@@ -85,12 +85,12 @@ clean: CMakeFiles/StableFluidsC++.dir/clean
 CMakeFiles/StableFluidsC++.dir/all:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/StableFluidsC++.dir/build.make CMakeFiles/StableFluidsC++.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/StableFluidsC++.dir/build.make CMakeFiles/StableFluidsC++.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/stevecutler/Documents/UVIC/StableFluidsC++/build/CMakeFiles --progress-num=1,2,3 "Built target StableFluidsC++"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/stevecutler/Documents/UVIC/StableFluidsC++/build/CMakeFiles --progress-num=1,2,3,4 "Built target StableFluidsC++"
 .PHONY : CMakeFiles/StableFluidsC++.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/StableFluidsC++.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/stevecutler/Documents/UVIC/StableFluidsC++/build/CMakeFiles 3
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/stevecutler/Documents/UVIC/StableFluidsC++/build/CMakeFiles 4
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/StableFluidsC++.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/stevecutler/Documents/UVIC/StableFluidsC++/build/CMakeFiles 0
 .PHONY : CMakeFiles/StableFluidsC++.dir/rule
@@ -102,7 +102,7 @@ StableFluidsC++: CMakeFiles/StableFluidsC++.dir/rule
 # codegen rule for target.
 CMakeFiles/StableFluidsC++.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/StableFluidsC++.dir/build.make CMakeFiles/StableFluidsC++.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/stevecutler/Documents/UVIC/StableFluidsC++/build/CMakeFiles --progress-num=1,2,3 "Finished codegen for target StableFluidsC++"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/Users/stevecutler/Documents/UVIC/StableFluidsC++/build/CMakeFiles --progress-num=1,2,3,4 "Finished codegen for target StableFluidsC++"
 .PHONY : CMakeFiles/StableFluidsC++.dir/codegen
 
 # clean rule for target.

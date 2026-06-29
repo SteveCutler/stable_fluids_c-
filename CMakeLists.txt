@@ -9,6 +9,7 @@ find_package(SFML COMPONENTS Graphics Window System REQUIRED)
 add_executable(StableFluidsC++ 
 src/main.cpp
 src/grid.cpp
+src/Slider.cpp
 )
 
 target_link_libraries(StableFluidsC++

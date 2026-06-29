@@ -31,9 +31,9 @@ m_pressure_ms(0.f),
 m_advect_ms(0.f),
 m_diffuse_ms(0.f),
 m_diff_co(1.f),
-m_decay(0.96f),
+m_decay(0.98f),
 m_vel_decay(0.9f),
-m_viscosity(0.01f),
+m_viscosity(0.2f),
 m_pressure_iter(20),
 m_advectVel_ms(0.f),
 m_project_ms(0.f),
@@ -41,7 +41,7 @@ m_addSource_ms(0.f),
 m_render_ms(0.f),
 m_thread_count(4),
 m_mult_threaded(true),
-m_buoyancy(100.f),
+m_buoyancy(10.f),
 m_noise_freq(0.04f),
 m_curl_mult(1000)
 {
@@ -166,7 +166,7 @@ void Grid::update(float dt){
     //Diffuse
     swapDensity();
     m_performance_clock.restart();
-    m_mult_threaded ? diffuse_Threaded(dt*5) : diffuse_Rows(dt*5,1,m_height-1);
+    m_mult_threaded ? diffuse_Threaded(dt) : diffuse_Rows(dt,1,m_height-1);
     m_diffuse_ms = m_performance_clock.restart().asMicroseconds()/1000.f;
     
     //Advect
@@ -337,8 +337,8 @@ void Grid::calcVel_Rows(float dt, std::size_t begin, std::size_t end){
                 float dx = (xr-xl)/2;
                 float dy = (yb-yt)/2;
 
-                m_u_velocity[index] += -dy*m_curl_mult*dt;
-                m_v_velocity[index] += dx*m_curl_mult*dt;
+                m_u_velocity[index] += (-dy*m_curl_mult*dt) * std::clamp(m_density[index],0.1f,1.f);
+                m_v_velocity[index] += (dx*m_curl_mult*dt) * std::clamp(m_density[index],0.1f,1.f);
                
             
 
@@ -458,11 +458,12 @@ void Grid::advectVel_Rows(float dt, std::size_t begin, std::size_t end){
         float bl_weight = (1-dx)*dy;
         float br_weight = dx*dy;
 
-        new_u_vel = tl_u*tl_weight + tr_u*tr_weight + bl_u*bl_weight + br_u*br_weight;
-        new_v_vel = tl_v*tl_weight + tr_v*tr_weight + bl_v*bl_weight + br_v*br_weight - m_buoyancy*dt;
+        new_u_vel = tl_u*tl_weight + tr_u*tr_weight + bl_u*bl_weight + br_u*br_weight *m_vel_decay;
+        new_v_vel = tl_v*tl_weight + tr_v*tr_weight + bl_v*bl_weight + br_v*br_weight *m_vel_decay;
+        new_v_vel -= m_buoyancy * dt ;
         
-        m_u_velocity[i] = new_u_vel*m_vel_decay;
-        m_v_velocity[i] = new_v_vel*m_vel_decay;
+        m_u_velocity[i] = new_u_vel;
+        m_v_velocity[i] = new_v_vel;
 
         }
     }
@@ -474,46 +475,9 @@ void Grid::diffuseVel_Threaded(float dt){
         m_height-1,
         [this, dt](std::size_t begin, std::size_t end){
             diffuseVel_Rows(dt, begin, end);
-        }
-    );
-}
-
-void Grid::gen_pixels_Threaded(){
-    Grid::parallelForRows(
-        0,
-        m_height,
-        [this](std::size_t begin, std::size_t end){
-            gen_pixels_Rows(begin, end);
-        }
-    );
-}
-
-void Grid::gen_pixels_Rows(std::size_t begin, std::size_t end){
-            //Convert density buffer to pixel data
-        for (std::size_t y = begin; y<end; y++){
-            std::size_t row = y*m_width;
-
-            for( std::size_t x=0; x<m_width; x++){
-                std::size_t i = row+x;
-                
-                //clamp between 0 and 1
-                float d = std::clamp(m_density[i],0.0f, 1.0f);
-                
-                
-                //convert density to RGB values
-                std::uint8_t value = static_cast<std::uint8_t>(d * 255.f);
-                
-                //find correct position in pixel array, given each pixel has 1 components
-                std::size_t p = i * 4;
-                
-                //create greyscale image with alpha of 1
-                m_pixels[p] = value;  //R
-                m_pixels[p+1] = value;//G
-                m_pixels[p+2] = value;//B
-                m_pixels[p+3] = 255;  //Alpha channel
-            }        
-    }
-};
+        }    
+    );    
+}    
 
 void Grid::diffuseVel_Rows(float dt, std::size_t begin, std::size_t end){
 
@@ -570,8 +534,8 @@ void Grid::diffuseVel_Rows(float dt, std::size_t begin, std::size_t end){
                 lap_v = left_v+right_v+up_v+down_v - (4*center_v);
 
                 //calculate and write new density
-                new_u_vel = m_u_velocity_prev[i]+ m_viscosity*lap_u*dt;
-                new_v_vel = m_v_velocity_prev[i]+ m_viscosity*lap_v*dt;
+                new_u_vel = m_u_velocity_prev[i]+ m_viscosity * lap_u*dt;
+                new_v_vel = m_v_velocity_prev[i]+ m_viscosity * lap_v*dt;
 
                 m_u_velocity[i] = new_u_vel;
                 m_v_velocity[i] = new_v_vel;
@@ -582,6 +546,43 @@ void Grid::diffuseVel_Rows(float dt, std::size_t begin, std::size_t end){
     }
 };
 
+
+void Grid::gen_pixels_Threaded(){
+    Grid::parallelForRows(
+        0,
+        m_height,
+        [this](std::size_t begin, std::size_t end){
+            gen_pixels_Rows(begin, end);
+        }    
+    );    
+}    
+
+void Grid::gen_pixels_Rows(std::size_t begin, std::size_t end){
+            //Convert density buffer to pixel data
+        for (std::size_t y = begin; y<end; y++){
+            std::size_t row = y*m_width;
+
+            for( std::size_t x=0; x<m_width; x++){
+                std::size_t i = row+x;
+                
+                //clamp between 0 and 1
+                float d = std::clamp(m_density[i],0.0f, 1.0f);
+                
+                
+                //convert density to RGB values
+                std::uint8_t value = static_cast<std::uint8_t>(d * 255.f);
+                
+                //find correct position in pixel array, given each pixel has 1 components
+                std::size_t p = i * 4;
+                
+                //create greyscale image with alpha of 1
+                m_pixels[p] = value;  //R
+                m_pixels[p+1] = value;//G
+                m_pixels[p+2] = value;//B
+                m_pixels[p+3] = 255;  //Alpha channel
+            }            
+    }        
+};    
 
 
 
