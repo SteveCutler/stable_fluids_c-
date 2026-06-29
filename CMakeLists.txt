@@ -10,6 +10,7 @@ add_executable(StableFluidsC++
 src/main.cpp
 src/grid.cpp
 src/Slider.cpp
+src/Renderer.cpp
 )
 
 target_link_libraries(StableFluidsC++

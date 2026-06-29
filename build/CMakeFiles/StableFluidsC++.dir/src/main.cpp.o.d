@@ -992,7 +992,8 @@ CMakeFiles/StableFluidsC++.dir/src/main.cpp.o: \
   /opt/homebrew/include/SFML/Graphics/Sprite.hpp \
   /opt/homebrew/include/SFML/Graphics/Text.hpp \
   /opt/homebrew/include/SFML/Graphics/VertexBuffer.hpp \
-  /Users/stevecutler/Documents/UVIC/StableFluidsC++/src/../include/Grid.hpp \
+  /Users/stevecutler/Documents/UVIC/StableFluidsC++/src/../include/Renderer.hpp \
+  /Users/stevecutler/Documents/UVIC/StableFluidsC++/include/../include/Grid.hpp \
   /Users/stevecutler/Documents/UVIC/StableFluidsC++/include/../include/FastNoiseLite.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/thread \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__thread/formatter.h \
@@ -1018,4 +1019,5 @@ CMakeFiles/StableFluidsC++.dir/src/main.cpp.o: \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__functional/pointer_to_binary_function.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__functional/pointer_to_unary_function.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__functional/unary_negate.h \
+  /Users/stevecutler/Documents/UVIC/StableFluidsC++/src/../include/Grid.hpp \
   /Users/stevecutler/Documents/UVIC/StableFluidsC++/src/../include/Slider.hpp

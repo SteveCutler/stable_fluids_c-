@@ -1,4 +1,6 @@
 file(REMOVE_RECURSE
+  "CMakeFiles/StableFluidsC++.dir/src/Renderer.cpp.o"
+  "CMakeFiles/StableFluidsC++.dir/src/Renderer.cpp.o.d"
   "CMakeFiles/StableFluidsC++.dir/src/Slider.cpp.o"
   "CMakeFiles/StableFluidsC++.dir/src/Slider.cpp.o.d"
   "CMakeFiles/StableFluidsC++.dir/src/grid.cpp.o"
