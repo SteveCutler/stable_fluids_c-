@@ -626,7 +626,7 @@ void Grid::calcDivergence_Rows(std::size_t begin, std::size_t end){
                 
             }
         }
-    //    std::cout << "max divergence: " << max_div << "\n";
+
 };
 
 void Grid::project_Threaded(){

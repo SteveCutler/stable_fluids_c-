@@ -44,16 +44,16 @@ int main()
     float* curl_mult = &grid.m_curl_mult;
     float* noise_freq = &grid.m_noise_freq;
     
-    std::cout << "decay:" << std::to_string(*decay);
+
     //Slider placement variables
     float slider_right = 130.f;
     
     //Sliders
     Slider buoyancy_slider("Buoyancy", {width-slider_right, 20.f},0.f, 50.f, buoyancy);
-    Slider diffusion_slider("Diffusion", {width-slider_right, 50.f},0.f,5.f, diffusion);
+    Slider diffusion_slider("Diffusion", {width-slider_right, 50.f},0.f,4.5f, diffusion);
     Slider decay_slider("Decay", {width-slider_right, 80.f},0.95f, 0.9999f, decay);
     Slider curl_mult_slider("Noise Strength", {width-slider_right, 110.f},0.f, 2000.f, curl_mult);
-    Slider noise_freq_slider("Noise Freq.", {width-slider_right, 140.f},0.01f, .07f, noise_freq);
+    Slider noise_freq_slider("Noise Freq.", {width-slider_right, 140.f},0.025f, .07f, noise_freq);
     
     //Active slider state buffer
     Slider* active_slider = nullptr;
@@ -67,6 +67,40 @@ int main()
         &noise_freq_slider
         
     };
+
+    //CONTROL DISPLAYS
+
+    sf::Text pauseControl(font);
+    pauseControl.setCharacterSize(12);
+    pauseControl.setFillColor(sf::Color::White);
+    pauseControl.setPosition({width-width*.2f, (height-height*0.05f)});
+    renderer.setString(pauseControl,"Press 'P' to pause");
+
+    sf::Text resetControl(font);
+    resetControl.setCharacterSize(12);
+    resetControl.setFillColor(sf::Color::White);
+    resetControl.setPosition({width-width*.2f, (height-height*0.08f)});
+    renderer.setString(resetControl,"Press 'R' to reset");
+
+    sf::Text arrowsControl(font);
+    arrowsControl.setCharacterSize(12);
+    arrowsControl.setFillColor(sf::Color::White);
+    arrowsControl.setPosition({width-width*.3f, (height-height*0.11f)});
+    renderer.setString(arrowsControl,"Press 'V' for Velocity Arrows");
+
+    sf::Text multithreadControl(font);
+    multithreadControl.setCharacterSize(12);
+    multithreadControl.setFillColor(sf::Color::White);
+    multithreadControl.setPosition({width-width*.35f, (height-height*0.14f)});
+    renderer.setString(multithreadControl,"Press 'M' to toggle Multithreaded");
+    
+    std::vector<sf::Text> Instructions{
+        pauseControl,
+        resetControl,
+        arrowsControl,
+        multithreadControl
+    };
+
 
 
     // run the main loop
@@ -157,6 +191,10 @@ int main()
             slider->draw(window);
         }
 
+        //draw instructions
+        for( auto& instruction : Instructions){
+            window.draw(instruction);
+        }
 
         // display
         window.display();
