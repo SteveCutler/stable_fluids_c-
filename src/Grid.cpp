@@ -30,10 +30,10 @@ m_div_ms(0.f),
 m_pressure_ms(0.f),
 m_advect_ms(0.f),
 m_diffuse_ms(0.f),
-m_diff_co(1.f),
-m_decay(0.98f),
+m_diff_co(4.5f),
+m_decay(0.994f),
 m_vel_decay(0.9f),
-m_viscosity(0.2f),
+m_viscosity(0.05f),
 m_pressure_iter(20),
 m_advectVel_ms(0.f),
 m_project_ms(0.f),
@@ -41,7 +41,7 @@ m_addSource_ms(0.f),
 m_render_ms(0.f),
 m_thread_count(4),
 m_mult_threaded(true),
-m_buoyancy(10.f),
+m_buoyancy(50.f),
 m_noise_freq(0.04f),
 m_curl_mult(1000)
 {
@@ -373,9 +373,10 @@ void Grid::addSource(size_t x, size_t y, float size){
                 float rad_sqr = size*size;
                 
                 if(dist < rad_sqr){
+                    float density = (rad_sqr-dist)/rad_sqr;
 
                     size_t pos = new_x+row;
-                    m_density[pos] = 1;
+                    m_density[pos] = std::clamp((m_density[pos]+density),0.f,1.f);
                 }
             }
 
@@ -458,9 +459,9 @@ void Grid::advectVel_Rows(float dt, std::size_t begin, std::size_t end){
         float bl_weight = (1-dx)*dy;
         float br_weight = dx*dy;
 
-        new_u_vel = tl_u*tl_weight + tr_u*tr_weight + bl_u*bl_weight + br_u*br_weight *m_vel_decay;
-        new_v_vel = tl_v*tl_weight + tr_v*tr_weight + bl_v*bl_weight + br_v*br_weight *m_vel_decay;
-        new_v_vel -= m_buoyancy * dt ;
+        new_u_vel = (tl_u*tl_weight + tr_u*tr_weight + bl_u*bl_weight + br_u*br_weight) *m_vel_decay;
+        new_v_vel = (tl_v*tl_weight + tr_v*tr_weight + bl_v*bl_weight + br_v*br_weight) *m_vel_decay;
+        new_v_vel -= m_buoyancy * m_density[i] * dt ;
         
         m_u_velocity[i] = new_u_vel;
         m_v_velocity[i] = new_v_vel;
