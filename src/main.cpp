@@ -31,7 +31,6 @@ int main()
     // create the window
     sf::RenderWindow window(sf::VideoMode({width, height}), "Wind Sim");
     // create a clock to track the elapsed time
-    sf::Clock renderClock;
     sf::Clock clock;
     
     
@@ -45,12 +44,12 @@ int main()
     float* curl_mult = &grid.m_curl_mult;
     float* noise_freq = &grid.m_noise_freq;
     
+    std::cout << "decay:" << std::to_string(*decay);
     //Slider placement variables
     float slider_right = 130.f;
-    float slider_gap = 30.f;
     
     //Sliders
-    Slider buoyancy_slider("Buoyancy", {width-slider_right, 20.f},0.f, 500.f, buoyancy);
+    Slider buoyancy_slider("Buoyancy", {width-slider_right, 20.f},0.f, 50.f, buoyancy);
     Slider diffusion_slider("Diffusion", {width-slider_right, 50.f},0.f,1.75f, diffusion);
     Slider decay_slider("Decay", {width-slider_right, 80.f},0.8f, 1.f, decay);
     Slider curl_mult_slider("Noise Strength", {width-slider_right, 110.f},0.f, 2000.f, curl_mult);
@@ -134,8 +133,8 @@ int main()
         
 
         //calculate dt
-        float dt = clock.restart().asSeconds();
-        //float dt = 1/15.f;
+        //float dt = clock.restart().asSeconds();
+        float dt = 1/15.f;
 
         // UPDATE //
         ////
@@ -143,7 +142,7 @@ int main()
             grid.update(dt);
         }
         if(!paused){
-            renderer.update(grid,arrow_viz,paused, dt);
+            renderer.update(grid,arrow_viz);
         }
 
         // DRAW BLOCK

@@ -1,3 +1,5 @@
+#pragma once
+
 #include <SFML/Window.hpp>
 #include <SFML/Graphics.hpp>
 #include "../include/Grid.hpp"
@@ -28,9 +30,10 @@ private:
     
 
 public:
-    Renderer(unsigned int width, unsigned int height, sf::Font font);
-    void update(const Grid& grid, bool arrow_viz, bool paused, float dt);
+    Renderer(unsigned int width, unsigned int height, sf::Font& font);
+    void update(const Grid& grid, bool arrow_viz);
     void draw(sf::RenderWindow& window, bool arrow_viz);
+    void setString(sf::Text& slider, std::string text);
     
 
 };

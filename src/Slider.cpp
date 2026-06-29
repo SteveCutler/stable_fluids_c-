@@ -23,7 +23,7 @@ slider_title(font){
     track.setPosition(position);
     track.setSize(sf::Vector2f(120.f,5.f));
     
-    float amount =std::clamp(((*target - min_value)/max_value),0.f,1.f);
+    float amount =std::clamp(((*target - min_value)/(max_value-min_value)),0.f,1.f);
     
     float knob_pos_x = track.getPosition().x + track.getSize().x*amount;
     float knob_pos_y = track.getPosition().y - track.getSize().y/2.f;

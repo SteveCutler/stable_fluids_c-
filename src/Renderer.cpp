@@ -2,7 +2,7 @@
 #include "../include/Renderer.hpp"
 #include <vector>
 
-Renderer::Renderer(unsigned int width, unsigned int height, sf::Font font):
+Renderer::Renderer(unsigned int width, unsigned int height, sf::Font& font):
 m_width(width),
 m_height(height),
 m_texture(sf::Vector2u(width, height)),
@@ -30,7 +30,7 @@ render(font)
     //Performance debug text intializing
     fpsText.setCharacterSize(12);
     fpsText.setFillColor(sf::Color::White);
-    fpsText.setPosition({5.f, 5.f});
+    fpsText.setPosition({5.f, 2.f});
   
     msText.setCharacterSize(12);
     msText.setFillColor(sf::Color::White);
@@ -74,72 +74,36 @@ render(font)
 
     render.setCharacterSize(12);
     render.setFillColor(sf::Color::White);
-    render.setPosition({5.f, 150.f});
+    render.setPosition({5.f, 180.f});
 
 }
 
-void Renderer::update(const Grid& grid, bool arrow_viz, bool paused, float dt){
+void Renderer::update(const Grid& grid, bool arrow_viz){
     // calc elapsed time
         float elapsed = m_clock.restart().asSeconds();
         
-        //fixed timestep unless paused
-        //float dt = paused ?  0.f : 1.f/15.f;
 
         // calculate performance values
-        float fps = paused ? 0.f : 1.f / elapsed;
-        float ms = paused ? 0.f : elapsed;
+        float fps = 1.f / elapsed;
+        float ms = elapsed;
 
 
         // overlay strings
-        fpsText.setString(
-            "FPS: " + std::to_string(static_cast<int>(fps))
-        );
-
-        msText.setString(
-            "\nFrame ms: " + std::to_string(ms)
-        );
-
-        noise.setString(
-            "\nNoise ms: " + std::to_string(grid.time_noise())
-        );
-
-        vel.setString(
-            "\nVel ms: " + std::to_string(grid.time_vel())
-        );
-
-        divergence.setString(
-            "\nDivergence ms: " + std::to_string(grid.time_divergence())
-        );
-
-        pressure.setString(
-            "\nPressure ms: " + std::to_string(grid.time_pressure())
-        );
-
-        diffuse.setString(
-            "\nDiffuse ms: " + std::to_string(grid.time_diffuse())
-        );
-
-        advect.setString(
-            "\nAdvect ms: " + std::to_string(grid.time_advect())
-        );
-
-        advectVel.setString(
-            "\nAdv Vel ms: " + std::to_string(grid.time_advectVel())
-        );
-
-        project.setString(
-            "\nProject ms: " + std::to_string(grid.time_project())
-        );
-
-        addSource.setString(
-            "\nAdd Source ms: " + std::to_string(grid.time_addSource())
-        );
+        setString(fpsText,"\nFPS: " + std::to_string(static_cast<int>(fps)));
+        setString(msText,"\nFrame ms: " + std::to_string(ms));
+        setString(noise,"\nNoise ms: " + std::to_string(grid.time_noise()));
+        setString(vel,"\nVel ms: " + std::to_string(grid.time_vel()));
+        setString(divergence,"\nDivergence ms: " + std::to_string(grid.time_divergence()));
+        setString(pressure,"\nPressure ms: " + std::to_string(grid.time_pressure()));
+        setString(diffuse,"\nDiffuse ms: " + std::to_string(grid.time_diffuse()));
+        setString(advect,"\nAdvect ms: " + std::to_string(grid.time_advect()));
+        setString(advectVel,"\nAdv Vel ms: " + std::to_string(grid.time_advectVel()));
+        setString(project,"\nProject ms: " + std::to_string(grid.time_project()));
+        setString(addSource,"\nAdd Source ms: " + std::to_string(grid.time_addSource()));
 
 
 
-        m_renderClock.restart();
 
-        const auto& density = grid.density();
         const auto& u_velocity = grid.u_velocity();
         const auto& v_velocity = grid.v_velocity();
         
@@ -181,14 +145,15 @@ void Renderer::update(const Grid& grid, bool arrow_viz, bool paused, float dt){
 
 
         //calc frame render time
-        float renderTime = paused ? 0.f : m_renderClock.restart().asMicroseconds()/1000.f;
-        render.setString(
-            "\nRender ms: " + std::to_string(renderTime)
-        );
+        float renderTime = m_renderClock.restart().asMicroseconds()/1000.f;
+        setString(render, "\nRender ms: " + std::to_string(renderTime));
+
 
 }
-
 void Renderer::draw(sf::RenderWindow& window, bool arrow_viz){
+
+
+    
     //render density field
         window.draw(m_sprite);
 
@@ -213,3 +178,9 @@ void Renderer::draw(sf::RenderWindow& window, bool arrow_viz){
         window.draw(project);
         window.draw(render);
 }
+
+void Renderer::setString(sf::Text& slider, std::string text){
+    slider.setString(
+            text
+        );
+};
