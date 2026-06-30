@@ -5,6 +5,8 @@
 #include "../include/Renderer.hpp"
 #include "../include/Grid.hpp"
 #include "../include/Slider.hpp"
+#include "../include/Emitter.hpp"
+
 
 
 
@@ -25,8 +27,18 @@ int main()
     sf::Font font;
     bool loaded = font.openFromFile("/Users/stevecutler/Library/Fonts/digital-7 (italic).ttf");
 
+    Emitter red{sf::Vector2f(width*.4f,height*.8f), 50.f, sf::Color(1.0f,0.f,0.f)};
+    Emitter green{sf::Vector2f(width*.5f,height*.8f), 50.f, sf::Color(0.0f,1.f,0.f)};
+    Emitter blue{sf::Vector2f(width*.6f,height*.8f), 50.f, sf::Color(0.0f,0.f,1.f)};
+
+    std::vector<Emitter*> emitters{
+        &red,
+        &green,
+        &blue
+    };
+
     //OBJECT CREATION
-    Grid grid{width, height};
+    Grid grid{width, height, emitters};
     Renderer renderer(width, height, font);
     // create the window
     sf::RenderWindow window(sf::VideoMode({width, height}), "Wind Sim");
@@ -50,7 +62,7 @@ int main()
     
     //Sliders
     Slider buoyancy_slider("Buoyancy", {width-slider_right, 20.f},0.f, 50.f, buoyancy);
-    Slider diffusion_slider("Diffusion", {width-slider_right, 50.f},0.f,4.5f, diffusion);
+    Slider diffusion_slider("Diffusion", {width-slider_right, 50.f},0.f,4.3f, diffusion);
     Slider decay_slider("Decay", {width-slider_right, 80.f},0.95f, 0.9999f, decay);
     Slider curl_mult_slider("Noise Strength", {width-slider_right, 110.f},0.f, 2000.f, curl_mult);
     Slider noise_freq_slider("Noise Freq.", {width-slider_right, 140.f},0.025f, .07f, noise_freq);

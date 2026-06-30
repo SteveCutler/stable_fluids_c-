@@ -5,6 +5,7 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Window.hpp>
 #include "../include/FastNoiseLite.h"
+#include "../include/Emitter.hpp"
 #include <thread>
 
 
@@ -12,7 +13,7 @@ class Grid
     {
 
     public:
-        Grid(std::size_t width, std::size_t height);
+        Grid(std::size_t width, std::size_t height, std::vector<Emitter*> emitters);
         std::vector<std::uint8_t> m_pixels;
         float m_buoyancy;
         float m_diff_co;
@@ -74,10 +75,13 @@ class Grid
         std::pair<std::size_t,std::size_t> get_xy(std::size_t i);
 
         //field getters
-        const std::vector<float>& density() const;
+        const std::vector<float>& density_r() const;
+        const std::vector<float>& density_g() const;
+        const std::vector<float>& density_b() const;
         const std::vector<float>& u_velocity() const;
         const std::vector<float>& v_velocity() const;
         const std::vector<float>& get_noise() const;
+
         const std::vector<std::uint8_t> & get_pixels() const;
 
         //timing getters
@@ -96,8 +100,8 @@ class Grid
     private:
         size_t calcPos(size_t x, size_t y);
         
-        void advect_decay_Threaded(float dt);
-        void advect_decay_Rows(float dt, std::size_t begin, std::size_t end);
+        void advect_decay_Threaded(float dt, const std::vector<float>& source, std::vector<float>& dest);
+        void advect_decay_Rows(float dt, const std::vector<float>& source, std::vector<float>& dest, std::size_t begin, std::size_t end);
 
         void advectVel_Threaded(float dt);
         void advectVel_Rows(float dt, std::size_t begin, std::size_t end);
@@ -133,12 +137,12 @@ class Grid
         
         void projectStep();
         
-        void addSource(size_t x, size_t y, float size);
+        void addSource(size_t x, size_t y, float size, sf::Color clr);
         
         void swapDensity();
         
-        void diffuse_Rows(float dt, std::size_t begin, std::size_t end);
-        void diffuse_Threaded(float dt);
+        void diffuse_Rows(float dt, const std::vector<float>& source, std::vector<float>& dest, std::size_t begin, std::size_t end);
+        void diffuse_Threaded(float dt, const std::vector<float>& source, std::vector<float>& dest);
 
         void diffuseVel_Threaded(float dt);
         void diffuseVel_Rows(float dt, std::size_t begin, std::size_t end);
@@ -149,6 +153,8 @@ class Grid
 
         void gen_pixels_Threaded();
         void gen_pixels_Rows(std::size_t begin, std::size_t end);
+
+        float density_sample(std::size_t i);
         
 
         FastNoiseLite m_noise_gen;
@@ -186,12 +192,19 @@ class Grid
         float m_addSource_ms;
         float m_render_ms;
 
+        //Emitters
+        std::vector<Emitter*> m_emitters;
+
         // SoA member variables
-        std::vector<float> m_density;
+        std::vector<float> m_density_r;
+        std::vector<float> m_density_g;
+        std::vector<float> m_density_b;
         std::vector<float> m_u_velocity;
         std::vector<float> m_v_velocity;
 
-        std::vector<float>m_density_prev;
+        std::vector<float>m_density_r_prev;
+        std::vector<float>m_density_g_prev;
+        std::vector<float>m_density_b_prev;
         std::vector<float>m_u_velocity_prev;
         std::vector<float>m_v_velocity_prev;
 

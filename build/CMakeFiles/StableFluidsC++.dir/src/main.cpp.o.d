@@ -995,6 +995,7 @@ CMakeFiles/StableFluidsC++.dir/src/main.cpp.o: \
   /Users/stevecutler/Documents/UVIC/StableFluidsC++/src/../include/Renderer.hpp \
   /Users/stevecutler/Documents/UVIC/StableFluidsC++/include/../include/Grid.hpp \
   /Users/stevecutler/Documents/UVIC/StableFluidsC++/include/../include/FastNoiseLite.h \
+  /Users/stevecutler/Documents/UVIC/StableFluidsC++/include/../include/Emitter.hpp \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/thread \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__thread/formatter.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__thread/this_thread.h \
@@ -1020,4 +1021,5 @@ CMakeFiles/StableFluidsC++.dir/src/main.cpp.o: \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__functional/pointer_to_unary_function.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__functional/unary_negate.h \
   /Users/stevecutler/Documents/UVIC/StableFluidsC++/src/../include/Grid.hpp \
-  /Users/stevecutler/Documents/UVIC/StableFluidsC++/src/../include/Slider.hpp
+  /Users/stevecutler/Documents/UVIC/StableFluidsC++/src/../include/Slider.hpp \
+  /Users/stevecutler/Documents/UVIC/StableFluidsC++/src/../include/Emitter.hpp

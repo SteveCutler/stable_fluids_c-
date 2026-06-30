@@ -994,6 +994,7 @@ CMakeFiles/StableFluidsC++.dir/src/Renderer.cpp.o: \
   /opt/homebrew/include/SFML/Graphics/VertexBuffer.hpp \
   /Users/stevecutler/Documents/UVIC/StableFluidsC++/include/../include/Grid.hpp \
   /Users/stevecutler/Documents/UVIC/StableFluidsC++/include/../include/FastNoiseLite.h \
+  /Users/stevecutler/Documents/UVIC/StableFluidsC++/include/../include/Emitter.hpp \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/thread \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__thread/formatter.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__thread/this_thread.h \

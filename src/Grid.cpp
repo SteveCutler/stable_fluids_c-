@@ -8,14 +8,18 @@
 
 
 
-Grid::Grid(std::size_t width, std::size_t height):
+Grid::Grid(std::size_t width, std::size_t height, std::vector<Emitter*> emitters):
 m_width(width),
 m_height(height),
 m_pixels(width * height * 4, 0),
-m_density(width*height, 0.0f),
+m_density_r(width*height, 0.0f),
+m_density_g(width*height, 0.0f),
+m_density_b(width*height, 0.0f),
 m_v_velocity(width*height, 0.0f),
 m_u_velocity(width*height, 0.0f),
-m_density_prev(width*height, 0.0f),
+m_density_r_prev(width*height, 0.0f),
+m_density_g_prev(width*height, 0.0f),
+m_density_b_prev(width*height, 0.0f),
 m_v_velocity_prev(width*height, 0.0f),
 m_u_velocity_prev(width*height, 0.0f),
 m_source(50.f),
@@ -43,6 +47,7 @@ m_thread_count(4),
 m_mult_threaded(true),
 m_buoyancy(50.f),
 m_noise_freq(0.04f),
+m_emitters(emitters),
 m_curl_mult(1000)
 {
 
@@ -58,8 +63,14 @@ m_curl_mult(1000)
 }
 
 //field getters
-const std::vector<float>& Grid::density() const{
-    return m_density;
+const std::vector<float>& Grid::density_r() const{
+    return m_density_r;
+}
+const std::vector<float>& Grid::density_g() const{
+    return m_density_g;
+}
+const std::vector<float>& Grid::density_b() const{
+    return m_density_b;
 }
 
 const std::vector<float>& Grid::u_velocity() const{
@@ -160,19 +171,28 @@ void Grid::update(float dt){
 
     //Add density source
     m_performance_clock.restart();
-    addSource(m_width/2,m_height*.8, m_source);
+
+    for( auto& emitter : m_emitters){
+
+        addSource(emitter->m_pos.x, emitter->m_pos.y, emitter->m_rad, emitter->m_clr);
+    }
+
     m_addSource_ms = m_performance_clock.restart().asMicroseconds()/1000.f;
     
     //Diffuse
     swapDensity();
     m_performance_clock.restart();
-    m_mult_threaded ? diffuse_Threaded(dt) : diffuse_Rows(dt,1,m_height-1);
+    m_mult_threaded ? diffuse_Threaded(dt, m_density_r_prev, m_density_r) : diffuse_Rows(dt,m_density_r_prev, m_density_r,1,m_height-1);
+    m_mult_threaded ? diffuse_Threaded(dt, m_density_g_prev, m_density_g) : diffuse_Rows(dt,m_density_g_prev, m_density_g,1,m_height-1);
+    m_mult_threaded ? diffuse_Threaded(dt, m_density_b_prev, m_density_b) : diffuse_Rows(dt,m_density_b_prev, m_density_b,1,m_height-1);
     m_diffuse_ms = m_performance_clock.restart().asMicroseconds()/1000.f;
     
     //Advect
     swapDensity();
     m_performance_clock.restart();
-    m_mult_threaded ? advect_decay_Threaded(dt) : advect_decay_Rows(dt, 0,m_height-1);
+    m_mult_threaded ? advect_decay_Threaded(dt, m_density_r_prev, m_density_r) : advect_decay_Rows(dt, m_density_r_prev, m_density_r, 0,m_height-1);
+    m_mult_threaded ? advect_decay_Threaded(dt, m_density_g_prev, m_density_g) : advect_decay_Rows(dt, m_density_g_prev, m_density_g, 0,m_height-1);
+    m_mult_threaded ? advect_decay_Threaded(dt, m_density_b_prev, m_density_b) : advect_decay_Rows(dt, m_density_b_prev, m_density_b, 0,m_height-1);
     m_advect_ms = m_performance_clock.restart().asMicroseconds()/1000.f;
 
     //generate pixels
@@ -184,11 +204,20 @@ void Grid::update(float dt){
 
 //HELPERS
 
+float Grid::density_sample(std::size_t i){
+    constexpr float scaler = 1.f/3.f;
 
+    return std::clamp(((m_density_b[i]+m_density_r[i]+m_density_g[i])*scaler),0.f,1.f);
+
+}
 
 void Grid::reset_density(){
-    std::fill(m_density.begin(), m_density.end(), 0.0f);
-    std::fill(m_density_prev.begin(), m_density_prev.end(), 0.0f);
+    std::fill(m_density_r.begin(), m_density_r.end(), 0.0f);
+    std::fill(m_density_g.begin(), m_density_g.end(), 0.0f);
+    std::fill(m_density_b.begin(), m_density_b.end(), 0.0f);
+    std::fill(m_density_r_prev.begin(), m_density_r_prev.end(), 0.0f);
+    std::fill(m_density_g_prev.begin(), m_density_g_prev.end(), 0.0f);
+    std::fill(m_density_b_prev.begin(), m_density_b_prev.end(), 0.0f);
 
     std::fill(m_u_velocity.begin(), m_u_velocity.end(), 0.0f);
     std::fill(m_v_velocity.begin(), m_v_velocity.end(), 0.0f);
@@ -337,8 +366,8 @@ void Grid::calcVel_Rows(float dt, std::size_t begin, std::size_t end){
                 float dx = (xr-xl)/2;
                 float dy = (yb-yt)/2;
 
-                m_u_velocity[index] += (-dy*m_curl_mult*dt) * std::clamp(m_density[index],0.1f,1.f);
-                m_v_velocity[index] += (dx*m_curl_mult*dt) * std::clamp(m_density[index],0.1f,1.f);
+                m_u_velocity[index] += (-dy*m_curl_mult*dt) * density_sample(index);
+                m_v_velocity[index] += (dx*m_curl_mult*dt) * density_sample(index);
                
             
 
@@ -348,11 +377,13 @@ void Grid::calcVel_Rows(float dt, std::size_t begin, std::size_t end){
 
 
 void Grid::swapDensity(){
-    std::swap(m_density, m_density_prev);
+    std::swap(m_density_r, m_density_r_prev);
+    std::swap(m_density_g, m_density_g_prev);
+    std::swap(m_density_b, m_density_b_prev);
 }
 
 
-void Grid::addSource(size_t x, size_t y, float size){
+void Grid::addSource(size_t x, size_t y, float size, sf::Color clr){
 
     float radius = size;
     for(int dy = -size; dy<=size; dy++){
@@ -373,10 +404,14 @@ void Grid::addSource(size_t x, size_t y, float size){
                 float rad_sqr = size*size;
                 
                 if(dist < rad_sqr){
-                    float density = (rad_sqr-dist)/rad_sqr;
+                    float density_r = clr.r * (rad_sqr-dist)/rad_sqr;
+                    float density_g = clr.g * (rad_sqr-dist)/rad_sqr;
+                    float density_b = clr.b * (rad_sqr-dist)/rad_sqr;
 
                     size_t pos = new_x+row;
-                    m_density[pos] = std::clamp((m_density[pos]+density),0.f,1.f);
+                    m_density_r[pos] = std::clamp((m_density_r[pos]+density_r),0.f,1.f);
+                    m_density_g[pos] = std::clamp((m_density_g[pos]+density_g),0.f,1.f);
+                    m_density_b[pos] = std::clamp((m_density_b[pos]+density_b),0.f,1.f);
                 }
             }
 
@@ -461,7 +496,7 @@ void Grid::advectVel_Rows(float dt, std::size_t begin, std::size_t end){
 
         new_u_vel = (tl_u*tl_weight + tr_u*tr_weight + bl_u*bl_weight + br_u*br_weight) *m_vel_decay;
         new_v_vel = (tl_v*tl_weight + tr_v*tr_weight + bl_v*bl_weight + br_v*br_weight) *m_vel_decay;
-        new_v_vel -= m_buoyancy * m_density[i] * dt ;
+        new_v_vel -= m_buoyancy * density_sample(i) * dt ;
         
         m_u_velocity[i] = new_u_vel;
         m_v_velocity[i] = new_v_vel;
@@ -567,19 +602,23 @@ void Grid::gen_pixels_Rows(std::size_t begin, std::size_t end){
                 std::size_t i = row+x;
                 
                 //clamp between 0 and 1
-                float d = std::clamp(m_density[i],0.0f, 1.0f);
+                float d_r = m_density_r[i];
+                float d_g = m_density_g[i];
+                float d_b = m_density_b[i];
                 
                 
                 //convert density to RGB values
-                std::uint8_t value = static_cast<std::uint8_t>(d * 255.f);
+                std::uint8_t value_r = static_cast<std::uint8_t>(d_r * 255.f);
+                std::uint8_t value_g = static_cast<std::uint8_t>(d_g * 255.f);
+                std::uint8_t value_b = static_cast<std::uint8_t>(d_b * 255.f);
                 
                 //find correct position in pixel array, given each pixel has 1 components
                 std::size_t p = i * 4;
                 
                 //create greyscale image with alpha of 1
-                m_pixels[p] = value;  //R
-                m_pixels[p+1] = value;//G
-                m_pixels[p+2] = value;//B
+                m_pixels[p] = value_r;  //R
+                m_pixels[p+1] = value_g;//G
+                m_pixels[p+2] = value_b;//B
                 m_pixels[p+3] = 255;  //Alpha channel
             }            
     }        
@@ -756,16 +795,17 @@ void Grid::solvePressureThreaded(std::size_t thread_count){
 
 };
 
-void Grid:: diffuse_Threaded(float dt){
+void Grid:: diffuse_Threaded(float dt, const std::vector<float>& source, std::vector<float>& dest){
     Grid::parallelForRows(
         1,
         m_height-1,
-        [this, dt](std::size_t begin, std::size_t end){
-            diffuse_Rows(dt, begin, end);
+        [this, dt, &source, &dest](std::size_t begin, std::size_t end){
+            diffuse_Rows(dt, source, dest, begin, end);
         }
     );
 }
-void Grid::diffuse_Rows(float dt, std::size_t begin, std::size_t end){
+
+void Grid::diffuse_Rows(float dt, const std::vector<float>& source, std::vector<float>& dest, std::size_t begin, std::size_t end){
 
     //5 points diffusion kernel
     //std::pair<std::size_t,std::size_t> xy = std::pair(0,0);
@@ -787,18 +827,18 @@ void Grid::diffuse_Rows(float dt, std::size_t begin, std::size_t end){
 
 
                 //getting data for laplacian
-                left = m_density_prev[index-1];
-                right = m_density_prev[index+1];
-                up = m_density_prev[index-m_width];
-                down = m_density_prev[index+m_width];
-                center = m_density_prev[index];
+                left = source[index-1];
+                right = source[index+1];
+                up = source[index-m_width];
+                down = source[index+m_width];
+                center = source[index];
 
                 //calculate laplacian
                 lap = left+right+up+down - (4*center);
 
                 //calculate and write new density
-                new_dens = m_density_prev[index]+ m_diff_co*lap*dt;
-                m_density[index] = new_dens;
+                new_dens = source[index]+ m_diff_co*lap*dt;
+                dest[index] = new_dens;
 
                 
 
@@ -806,19 +846,20 @@ void Grid::diffuse_Rows(float dt, std::size_t begin, std::size_t end){
         }
 }
 
-void Grid::advect_decay_Threaded(float dt){
+
+void Grid::advect_decay_Threaded(float dt, const std::vector<float>& source, std::vector<float>& dest){
     Grid::parallelForRows(
         0,
         m_height,
-        [this, dt](std::size_t begin, std::size_t end){
-            advect_decay_Rows(dt, begin, end);
+        [this, dt, &source, &dest](std::size_t begin, std::size_t end){
+            advect_decay_Rows(dt, source, dest, begin, end);
         }
     );
     //included decay here to minimize operations
     
 }
 
-void Grid::advect_decay_Rows(float dt, std::size_t begin, std::size_t end){
+void Grid::advect_decay_Rows(float dt, const std::vector<float>& source, std::vector<float>& dest, std::size_t begin, std::size_t end){
 
 
     float new_dens = 0.f;
@@ -843,10 +884,10 @@ void Grid::advect_decay_Rows(float dt, std::size_t begin, std::size_t end){
             std::size_t y_high = y_low+1;
 
             //finding values at corners
-            float tl = m_density_prev[x_low+y_low*m_width];
-            float tr = m_density_prev[x_high+y_low*m_width];
-            float bl = m_density_prev[x_low+y_high*m_width];
-            float br = m_density_prev[x_high+y_high*m_width];
+            float tl = source[x_low+y_low*m_width];
+            float tr = source[x_high+y_low*m_width];
+            float bl = source[x_low+y_high*m_width];
+            float br = source[x_high+y_high*m_width];
 
             //distance from edges
             float dx = new_x - x_low;
@@ -860,7 +901,7 @@ void Grid::advect_decay_Rows(float dt, std::size_t begin, std::size_t end){
 
             new_dens = tl*tl_weight + tr*tr_weight + bl*bl_weight + br*br_weight;
 
-            m_density[i] = new_dens*m_decay;
+            dest[i] = new_dens*m_decay;
 
         }
 

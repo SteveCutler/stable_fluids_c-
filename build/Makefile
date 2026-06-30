@@ -129,6 +129,30 @@ StableFluidsC++/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/StableFluidsC++.dir/build.make CMakeFiles/StableFluidsC++.dir/build
 .PHONY : StableFluidsC++/fast
 
+src/Emitter.o: src/Emitter.cpp.o
+.PHONY : src/Emitter.o
+
+# target to build an object file
+src/Emitter.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/StableFluidsC++.dir/build.make CMakeFiles/StableFluidsC++.dir/src/Emitter.cpp.o
+.PHONY : src/Emitter.cpp.o
+
+src/Emitter.i: src/Emitter.cpp.i
+.PHONY : src/Emitter.i
+
+# target to preprocess a source file
+src/Emitter.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/StableFluidsC++.dir/build.make CMakeFiles/StableFluidsC++.dir/src/Emitter.cpp.i
+.PHONY : src/Emitter.cpp.i
+
+src/Emitter.s: src/Emitter.cpp.s
+.PHONY : src/Emitter.s
+
+# target to generate assembly for a file
+src/Emitter.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/StableFluidsC++.dir/build.make CMakeFiles/StableFluidsC++.dir/src/Emitter.cpp.s
+.PHONY : src/Emitter.cpp.s
+
 src/Renderer.o: src/Renderer.cpp.o
 .PHONY : src/Renderer.o
 
@@ -234,6 +258,9 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... StableFluidsC++"
+	@echo "... src/Emitter.o"
+	@echo "... src/Emitter.i"
+	@echo "... src/Emitter.s"
 	@echo "... src/Renderer.o"
 	@echo "... src/Renderer.i"
 	@echo "... src/Renderer.s"

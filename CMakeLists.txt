@@ -11,6 +11,7 @@ src/main.cpp
 src/grid.cpp
 src/Slider.cpp
 src/Renderer.cpp
+src/Emitter.cpp
 )
 
 target_link_libraries(StableFluidsC++
