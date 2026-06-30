@@ -137,7 +137,7 @@ class Grid
         
         void projectStep();
         
-        void addSource(size_t x, size_t y, float size, sf::Color clr);
+        void addSource(size_t x, size_t y, float size, sf::Vector3f clr);
         
         void swapDensity();
         

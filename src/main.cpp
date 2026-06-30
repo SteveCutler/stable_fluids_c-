@@ -27,14 +27,14 @@ int main()
     sf::Font font;
     bool loaded = font.openFromFile("/Users/stevecutler/Library/Fonts/digital-7 (italic).ttf");
 
-    Emitter red{sf::Vector2f(width*.4f,height*.8f), 50.f, sf::Color(1.0f,0.f,0.f)};
-    Emitter green{sf::Vector2f(width*.5f,height*.8f), 50.f, sf::Color(0.0f,1.f,0.f)};
-    Emitter blue{sf::Vector2f(width*.6f,height*.8f), 50.f, sf::Color(0.0f,0.f,1.f)};
+    Emitter magenta{sf::Vector2f(width*.4f,height*.8f), 50.f, sf::Vector3f(1.f,0.f,.2f)};
+    Emitter yellow{sf::Vector2f(width*.5f,height*.8f), 50.f, sf::Vector3f(1.f,1.f,0.f)};
+    Emitter cyan{sf::Vector2f(width*.6f,height*.8f), 50.f, sf::Vector3f(0.0f,.15f,1.f)};
 
     std::vector<Emitter*> emitters{
-        &red,
-        &green,
-        &blue
+        &magenta,
+        &yellow,
+        &cyan
     };
 
     //OBJECT CREATION

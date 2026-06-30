@@ -1,12 +1,11 @@
 CMakeFiles/StableFluidsC++.dir/src/Emitter.cpp.o: \
   /Users/stevecutler/Documents/UVIC/StableFluidsC++/src/Emitter.cpp \
   /Users/stevecutler/Documents/UVIC/StableFluidsC++/src/../include/Emitter.hpp \
-  /opt/homebrew/include/SFML/System/Vector2.hpp \
+  /opt/homebrew/include/SFML/System/Vector3.hpp \
   /opt/homebrew/include/SFML/System/Export.hpp \
   /opt/homebrew/include/SFML/Config.hpp \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/TargetConditionals.h \
-  /opt/homebrew/include/SFML/System/Angle.hpp \
-  /opt/homebrew/include/SFML/System/Angle.inl \
+  /opt/homebrew/include/SFML/System/Vector3.inl \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/cassert \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__assert \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__config \
@@ -84,6 +83,9 @@ CMakeFiles/StableFluidsC++.dir/src/Emitter.cpp.o: \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/malloc/_ptrcheck.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/sys/_types/_dev_t.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/sys/_types/_mode_t.h \
+  /opt/homebrew/include/SFML/System/Vector2.hpp \
+  /opt/homebrew/include/SFML/System/Angle.hpp \
+  /opt/homebrew/include/SFML/System/Angle.inl \
   /opt/homebrew/include/SFML/System/Vector2.inl \
   /opt/homebrew/include/SFML/Graphics/Color.hpp \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/cstdint \

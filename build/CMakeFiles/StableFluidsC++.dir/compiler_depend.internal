@@ -91,6 +91,8 @@ CMakeFiles/StableFluidsC++.dir/src/Emitter.cpp.o
  /opt/homebrew/include/SFML/System/Export.hpp
  /opt/homebrew/include/SFML/System/Vector2.hpp
  /opt/homebrew/include/SFML/System/Vector2.inl
+ /opt/homebrew/include/SFML/System/Vector3.hpp
+ /opt/homebrew/include/SFML/System/Vector3.inl
 
 CMakeFiles/StableFluidsC++.dir/src/Renderer.cpp.o
  /Users/stevecutler/Documents/UVIC/StableFluidsC++/src/Renderer.cpp

@@ -383,7 +383,7 @@ void Grid::swapDensity(){
 }
 
 
-void Grid::addSource(size_t x, size_t y, float size, sf::Color clr){
+void Grid::addSource(size_t x, size_t y, float size, sf::Vector3f clr){
 
     float radius = size;
     for(int dy = -size; dy<=size; dy++){
@@ -404,9 +404,9 @@ void Grid::addSource(size_t x, size_t y, float size, sf::Color clr){
                 float rad_sqr = size*size;
                 
                 if(dist < rad_sqr){
-                    float density_r = clr.r * (rad_sqr-dist)/rad_sqr;
-                    float density_g = clr.g * (rad_sqr-dist)/rad_sqr;
-                    float density_b = clr.b * (rad_sqr-dist)/rad_sqr;
+                    float density_r = clr.x * (rad_sqr-dist)/rad_sqr;
+                    float density_g = clr.y * (rad_sqr-dist)/rad_sqr;
+                    float density_b = clr.z * (rad_sqr-dist)/rad_sqr;
 
                     size_t pos = new_x+row;
                     m_density_r[pos] = std::clamp((m_density_r[pos]+density_r),0.f,1.f);
