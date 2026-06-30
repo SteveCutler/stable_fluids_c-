@@ -148,14 +148,14 @@ void Grid::update(float dt){
     m_vel_ms = m_performance_clock.restart().asMicroseconds()/1000.f;
     
     // apply velocity boundary calculations
-    velBoundaries();
-
+    
     //Advect velocity
     swapVel();
     m_performance_clock.restart();
     m_mult_threaded ? advectVel_Threaded(dt) : advectVel_Rows(dt, 1,m_height-1);
     m_advectVel_ms = m_performance_clock.restart().asMicroseconds()/1000.f;
-
+    
+    velBoundaries();
     
     
     //Diffuse velocity
@@ -186,6 +186,7 @@ void Grid::update(float dt){
     m_mult_threaded ? diffuse_Threaded(dt, m_density_g_prev, m_density_g) : diffuse_Rows(dt,m_density_g_prev, m_density_g,1,m_height-1);
     m_mult_threaded ? diffuse_Threaded(dt, m_density_b_prev, m_density_b) : diffuse_Rows(dt,m_density_b_prev, m_density_b,1,m_height-1);
     m_diffuse_ms = m_performance_clock.restart().asMicroseconds()/1000.f;
+    velBoundaries();
     
     //Advect
     swapDensity();
@@ -827,17 +828,18 @@ void Grid::diffuse_Rows(float dt, const std::vector<float>& source, std::vector<
 
 
                 //getting data for laplacian
-                left = source[index-1];
-                right = source[index+1];
-                up = source[index-m_width];
-                down = source[index+m_width];
-                center = source[index];
+                left = dest[index-1];
+                right = dest[index+1];
+                up = dest[index-m_width];
+                down = dest[index+m_width];
+                center = dest[index];
 
                 //calculate laplacian
                 lap = left+right+up+down - (4*center);
 
                 //calculate and write new density
-                new_dens = source[index]+ m_diff_co*lap*dt;
+                new_dens = (source[index] + m_diff_co*dt*(left+right+up+down))/(1.f+(4.f*m_diff_co*dt));
+               //// new_dens = (source[index]+ m_diff_co*lap*dt)/1+(4*m_diff_co*dt);
                 dest[index] = new_dens;
 
                 
