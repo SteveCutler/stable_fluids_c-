@@ -432,7 +432,7 @@ void Grid::advectVel_Threaded(float dt){
     );
     
 
-};
+}; 
 
 void Grid::advectVel_Rows(float dt, std::size_t begin, std::size_t end){
     float new_u_vel = 0.f;
