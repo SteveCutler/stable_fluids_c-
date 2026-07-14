@@ -27,14 +27,14 @@ int main()
     sf::Font font;
     bool loaded = font.openFromFile("/Users/stevecutler/Library/Fonts/digital-7 (italic).ttf");
 
-    Emitter magenta{sf::Vector2f(width*.4f,height*.8f), 50.f, sf::Vector3f(1.f,0.f,.2f)};
-    Emitter yellow{sf::Vector2f(width*.5f,height*.8f), 50.f, sf::Vector3f(1.f,1.f,0.f)};
-    Emitter cyan{sf::Vector2f(width*.6f,height*.8f), 50.f, sf::Vector3f(0.0f,.15f,1.f)};
+    Emitter magenta{sf::Vector2f(width*.3f,height*.8f), 50.f, sf::Vector3f(1.f,0.f,.2f)};
+    //Emitter yellow{sf::Vector2f(width*.5f,height*.8f), 50.f, sf::Vector3f(1.f,1.f,0.f)};
+    //Emitter cyan{sf::Vector2f(width*.7f,height*.8f), 50.f, sf::Vector3f(0.0f,.15f,1.f)};
 
     std::vector<Emitter*> emitters{
         &magenta,
-        &yellow,
-        &cyan
+        //&yellow,
+       // &cyan
     };
 
     //OBJECT CREATION
@@ -49,7 +49,7 @@ int main()
     //SLIDER UI//
     ////
 
-    //Brabbing slider controlled variable references
+    //Grabbing slider controlled variable references
     float* buoyancy = &grid.m_buoyancy;
     float* diffusion = &grid.m_diff_co;
     float* decay = &grid.m_decay;
@@ -57,7 +57,7 @@ int main()
     float* noise_freq = &grid.m_noise_freq;
     
 
-    //Slider placement variables
+    //Slider placement variable
     float slider_right = 130.f;
     
     //Sliders

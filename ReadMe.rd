@@ -21,3 +21,6 @@ Noise
 Arrows
     -add button to turn off or on Arrows
     -if off turn off arrow calculations as well, likely slowing down performance
+
+Paper on implimenting Metal for more complex kernels
+    https://arxiv.org/pdf/2206.01791
