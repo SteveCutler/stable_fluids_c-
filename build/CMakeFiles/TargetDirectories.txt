@@ -1,3 +1,0 @@
-/Users/stevecutler/Documents/UVIC/StableFluidsC++/build/CMakeFiles/StableFluidsC++.dir
-/Users/stevecutler/Documents/UVIC/StableFluidsC++/build/CMakeFiles/edit_cache.dir
-/Users/stevecutler/Documents/UVIC/StableFluidsC++/build/CMakeFiles/rebuild_cache.dir
